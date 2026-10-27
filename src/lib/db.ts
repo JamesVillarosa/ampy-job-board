@@ -54,6 +54,14 @@ export async function getStats() {
   >;
 }
 
+// Next open bookings, for the run-sheet ticker.
+export async function upcomingJobs(limit = 10) {
+  return sql<Job[]>`
+    select * from jobs
+    where status in ('Scheduled', 'In Progress') and scheduled_for >= current_date
+    order by scheduled_for, id limit ${limit}`;
+}
+
 export async function getJob(id: number) {
   const [job] = await sql<Job[]>`select * from jobs where id = ${id}`;
   if (!job) return null;

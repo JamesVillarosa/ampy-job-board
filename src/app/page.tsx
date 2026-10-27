@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
-import { getStats, isSort, isStatus, listJobs, STATUSES, type Status } from "@/lib/db";
+import { getStats, isSort, isStatus, listJobs, STATUSES, upcomingJobs, type Job, type Status } from "@/lib/db";
 import { STATUS_STYLE } from "@/lib/status";
 import { date, money } from "@/lib/format";
 import { Eyebrow, StatusBadge } from "./components";
@@ -9,6 +9,11 @@ import { Filters } from "./filters";
 
 const OPEN: Status[] = ["Scheduled", "In Progress", "On Hold"];
 const today = new Intl.DateTimeFormat("en-AU", { weekday: "long", day: "numeric", month: "long", timeZone: "Australia/Melbourne" });
+const hour = new Intl.DateTimeFormat("en-AU", { hour: "numeric", hourCycle: "h23", timeZone: "Australia/Melbourne" });
+const greeting = () => {
+  const h = Number(hour.format(new Date()));
+  return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
+};
 
 export default function Home({ searchParams }: PageProps<"/">) {
   return (
@@ -20,11 +25,33 @@ export default function Home({ searchParams }: PageProps<"/">) {
 
 function BoardSkeleton() {
   return (
-    <div aria-busy className="space-y-10">
+    <div aria-busy className="shell space-y-10 py-10">
       <div className="brand-panel h-[360px] animate-pulse rounded-[28px]" />
       <div className="h-11 w-2/3 animate-pulse rounded-xl bg-line" />
       <div className="h-[480px] animate-pulse rounded-3xl bg-line/70" />
     </div>
+  );
+}
+
+// Endless strip of the next bookings, like the services ticker on ampy.com.au.
+function RunSheet({ jobs }: { jobs: Job[] }) {
+  const items = jobs.map((j) => (
+    <li key={j.id} className="flex shrink-0 items-center gap-3 pr-8">
+      <span aria-hidden className="size-1.5 rotate-45 bg-brand" />
+      <span className="text-brand">{date(j.scheduled_for)}</span>
+      <Link href={`/jobs/${j.id}`} className="text-white transition-colors hover:text-brand focus-visible:text-brand focus-visible:outline-none">
+        {j.customer}
+      </Link>
+      <span className="text-white/55">{j.job_type} · {j.suburb}</span>
+    </li>
+  ));
+  return (
+    <section aria-label="Upcoming bookings" className="reveal ticker overflow-hidden bg-ink py-4 text-[13px] font-bold tracking-wide uppercase">
+      <div className="ticker-track flex w-max">
+        <ul className="flex">{items}</ul>
+        <ul aria-hidden inert className="flex">{items}</ul>
+      </div>
+    </section>
   );
 }
 
@@ -34,7 +61,7 @@ async function Board({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
   const q = typeof sp.q === "string" ? sp.q.trim().slice(0, 100) : "";
   const sort = isSort(sp.sort) ? sp.sort : "newest";
 
-  const [jobs, stats] = await Promise.all([listJobs({ status, q, sort }), getStats()]);
+  const [jobs, stats, upcoming] = await Promise.all([listJobs({ status, q, sort }), getStats(), upcomingJobs()]);
   const open = OPEN.reduce((a, s) => ({ count: a.count + stats[s].count, total: a.total + stats[s].total }), { count: 0, total: 0 });
   const all = STATUSES.reduce((n, s) => n + stats[s].count, 0);
   const grand = STATUSES.reduce((n, s) => n + stats[s].total, 0) || 1;
@@ -48,15 +75,50 @@ async function Board({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
   };
 
   return (
-    <div className="space-y-10 sm:space-y-14">
-      {/* Hero: the one number the owner cares about, with value split by status. */}
-      <section aria-labelledby="pipeline" className="brand-panel relative rounded-[28px] text-white">
+    <div className="space-y-10 pb-6 sm:space-y-14 sm:pb-10">
+      {/* Full-bleed team photo, like ampy.com.au, with today's headline numbers. */}
+      <section aria-labelledby="welcome" className="relative isolate overflow-hidden bg-ink text-white">
+        <Image src="/hero.jpg" alt="" fill priority sizes="100vw" className="hero-zoom -z-10 object-cover object-[50%_30%] opacity-75" />
+        <div aria-hidden className="absolute inset-0 -z-10 bg-[linear-gradient(to_top,var(--color-ink)_0%,rgb(26_19_14/0.55)_45%,rgb(26_19_14/0.25)_100%)]" />
+        <div className="mx-auto max-w-7xl px-4 pt-14 pb-36 text-center sm:px-6 sm:pt-24 sm:pb-44">
+          <Eyebrow className="rise text-white/85">
+            {greeting()}, team · {today.format(new Date())}
+          </Eyebrow>
+          <h1 id="welcome" style={{ ["--i" as string]: 1 }} className="rise mx-auto mt-4 max-w-3xl text-[clamp(2.25rem,7vw,5rem)] leading-[0.92] font-black tracking-tight uppercase text-balance">
+            Today on the tools
+          </h1>
+          <ul style={{ ["--i" as string]: 2 }} className="rise mt-7 flex flex-wrap justify-center gap-2 text-[13px] font-bold">
+            {(
+              [
+                ["In Progress", "on the tools"],
+                ["Scheduled", "booked in"],
+                ["On Hold", "waiting"],
+              ] as const
+            ).map(([s, label]) => (
+              <li key={s}>
+                <Link
+                  href={href(s)}
+                  scroll={false}
+                  className="flex h-10 items-center gap-2 rounded-full bg-white/10 px-4 ring-1 ring-white/25 backdrop-blur-sm transition-[background-color,transform] duration-200 ease-out hover:bg-white/20 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                >
+                  <span aria-hidden className={`size-2 rounded-full ${STATUS_STYLE[s].bar}`} />
+                  <span className="tabular">{stats[s].count}</span> {label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      {/* Pipeline panel overlaps the photo, van parked off its right edge. */}
+      <div className="shell">
+      <section aria-labelledby="pipeline" className="brand-panel relative z-10 -mt-36 rounded-[28px] text-white shadow-[0_30px_60px_-30px_rgb(120_40_0/0.6)] sm:-mt-44">
         <div className="relative z-10 p-6 sm:p-10 lg:max-w-[58%] lg:p-12">
-          <Eyebrow className="text-white/80">Today&apos;s board · {today.format(new Date())}</Eyebrow>
-          <h1 id="pipeline" className="mt-4 text-[clamp(2.25rem,6vw,4.25rem)] leading-[0.95] font-black tracking-tight uppercase text-balance">
+          <Eyebrow className="text-white/80">Open pipeline</Eyebrow>
+          <h2 id="pipeline" className="mt-4 text-[clamp(2.25rem,6vw,4.25rem)] leading-[0.95] font-black tracking-tight uppercase text-balance">
             <span className="tabular">{money(open.total)}</span>
             <span className="block text-white/85">in the pipeline</span>
-          </h1>
+          </h2>
           <p className="mt-5 max-w-md text-[15px] leading-relaxed font-medium text-white/90">
             {open.count} open jobs across Bendigo and surrounds. {stats["In Progress"].count} on the tools right now,{" "}
             {stats["On Hold"].count} waiting on the customer or parts.
@@ -91,8 +153,11 @@ async function Board({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
           className="drive-in pointer-events-none absolute -right-6 -bottom-10 hidden w-[46%] max-w-[600px] drop-shadow-[0_24px_24px_rgb(60_20_0/0.35)] lg:block xl:-right-16"
         />
       </section>
+      </div>
 
-      <section aria-labelledby="jobs-heading" className="space-y-5">
+      {upcoming.length > 0 && <RunSheet jobs={upcoming} />}
+
+      <section aria-labelledby="jobs-heading" className="reveal shell space-y-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <Eyebrow className="text-brand">Job board</Eyebrow>
@@ -105,7 +170,7 @@ async function Board({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
           </Suspense>
         </div>
 
-        <nav aria-label="Filter by status" className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+        <nav aria-label="Filter by status" className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-0">
           <ul className="flex w-max gap-2">
             {[undefined, ...STATUSES].map((s) => {
               const active = s === status;

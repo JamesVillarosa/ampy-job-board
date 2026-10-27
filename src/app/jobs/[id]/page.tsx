@@ -18,9 +18,11 @@ async function load(id: string) {
 
 export default function JobPage({ params }: PageProps<"/jobs/[id]">) {
   return (
-    <Suspense fallback={<div aria-busy className="brand-panel h-72 animate-pulse rounded-[28px]" />}>
-      <JobDetail params={params} />
-    </Suspense>
+    <div className="shell py-6 sm:py-10">
+      <Suspense fallback={<div aria-busy className="brand-panel h-72 animate-pulse rounded-[28px]" />}>
+        <JobDetail params={params} />
+      </Suspense>
+    </div>
   );
 }
 

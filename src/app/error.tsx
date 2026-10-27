@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 export default function Error({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   return (
-    <div className="py-20 text-center">
+    <div className="px-4 py-20 text-center">
       <h1 className="text-3xl font-black tracking-tight uppercase">Something went wrong</h1>
       <p className="mt-2 text-sm text-muted">
         The error has been logged{error.digest ? ` (ref ${error.digest})` : ""}.

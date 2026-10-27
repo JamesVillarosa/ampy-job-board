@@ -22,6 +22,11 @@ body {
   overflow-x: clip;
 }
 
+/* Page width container; full-bleed bands sit outside it. */
+@utility shell {
+  @apply mx-auto w-full max-w-7xl px-4 sm:px-6;
+}
+
 .tabular {
   font-variant-numeric: tabular-nums;
 }
@@ -69,6 +74,37 @@ body {
 .drive-in {
   animation: drive-in 800ms var(--ease-out-strong) 100ms both;
 }
+/* Hero photo settles in slowly, once. */
+@keyframes settle {
+  from { transform: scale(1.08); }
+}
+.hero-zoom {
+  animation: settle 2.4s var(--ease-out-strong) both;
+}
+
+/* Run-sheet ticker: two identical lists, slide one list-width, loop. */
+@keyframes ticker {
+  to { transform: translateX(-50%); }
+}
+.ticker-track {
+  animation: ticker 60s linear infinite;
+}
+.ticker:hover .ticker-track,
+.ticker:focus-within .ticker-track {
+  animation-play-state: paused;
+}
+
+/* Sections rise as they scroll in; browsers without scroll timelines just show them. */
+@supports (animation-timeline: view()) {
+  .reveal {
+    animation: rise linear both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 30%;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .rise, .grow, .drive-in { animation: none; }
+  .rise, .grow, .drive-in, .hero-zoom, .reveal { animation: none; }
+  .ticker { overflow-x: auto; }
+  .ticker-track { animation: none; }
 }

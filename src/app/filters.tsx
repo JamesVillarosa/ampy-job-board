@@ -45,7 +45,7 @@ export function Filters() {
           type="search"
           name="q"
           value={q}
-          placeholder="Customer name"
+          placeholder="Search"
           autoComplete="off"
           onChange={(e) => {
             const v = e.target.value;

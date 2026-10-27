@@ -47,12 +47,32 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           </div>
         </header>
 
-        <main id="main" className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 sm:py-10">{children}</main>
+        <main id="main" className="flex-1 overflow-x-clip">{children}</main>
 
-        <footer className="border-t border-line bg-white">
-          <div className="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-6 text-xs text-muted sm:flex-row sm:items-center sm:justify-between sm:px-6">
-            <span className="font-semibold text-ink">Ampy Electrical · Internal tools</span>
-            <span>Licensed electricians servicing Bendigo and surrounds</span>
+        <footer className="mt-6 bg-ink text-white/70">
+          <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 text-sm sm:grid-cols-[1.5fr_1fr_1fr] sm:px-6">
+            <div>
+              <Image src="/logo.png" alt="Ampy Electrical" width={807} height={282} className="h-10 w-auto brightness-0 invert" />
+              <p className="mt-4 max-w-xs leading-relaxed">Internal ops portal for Ampy Electrical. Licensed electricians servicing Bendigo and surrounds.</p>
+            </div>
+            <div>
+              <p className="text-xs font-bold tracking-[0.14em] text-brand uppercase">Office</p>
+              <ul className="mt-3 space-y-2 font-medium">
+                <li><a href="tel:0344163638" className="transition-colors hover:text-white">(03) 4416 3638</a></li>
+                <li><a href="mailto:hello@ampy.com" className="transition-colors hover:text-white">hello@ampy.com</a></li>
+              </ul>
+            </div>
+            <div>
+              <p className="text-xs font-bold tracking-[0.14em] text-brand uppercase">Portal</p>
+              <ul className="mt-3 space-y-2 font-medium">
+                <li><Link href="/" className="transition-colors hover:text-white">Job board</Link></li>
+                <li><a href="/api/health" className="transition-colors hover:text-white">System status</a></li>
+                <li><a href="https://ampy.com.au" className="transition-colors hover:text-white">ampy.com.au</a></li>
+              </ul>
+            </div>
+          </div>
+          <div className="border-t border-white/10">
+            <p className="mx-auto max-w-7xl px-4 py-5 text-xs sm:px-6">© Ampy Electrical · Internal tools</p>
           </div>
         </footer>
       </body>
