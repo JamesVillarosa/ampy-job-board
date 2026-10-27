@@ -36,7 +36,7 @@ export function Filters() {
 
   return (
     <form role="search" className="flex w-full gap-2 lg:w-auto" onSubmit={(e) => e.preventDefault()}>
-      <label className="relative flex-1 lg:w-80">
+      <label className="relative min-w-0 flex-1 lg:w-80">
         <span className="sr-only">Search customers</span>
         <svg aria-hidden viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted">
           <circle cx="9" cy="9" r="6" /><path d="m14 14 3.5 3.5" strokeLinecap="round" />
@@ -45,7 +45,7 @@ export function Filters() {
           type="search"
           name="q"
           value={q}
-          placeholder="Search customer"
+          placeholder="Customer name"
           autoComplete="off"
           onChange={(e) => {
             const v = e.target.value;
