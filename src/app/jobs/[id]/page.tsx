@@ -3,7 +3,6 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { getJob } from "@/lib/db";
 import { date, dateTime, money } from "@/lib/format";
-import { StatusBadge } from "../../components";
 import { NoteForm, StatusForm } from "./forms";
 
 export async function generateMetadata({ params }: PageProps<"/jobs/[id]">) {
@@ -40,10 +39,7 @@ async function JobDetail({ params }: Pick<PageProps<"/jobs/[id]">, "params">) {
           <h1 className="mt-0.5 font-display text-2xl font-bold tracking-tight text-balance">{job.customer}</h1>
           <p className="mt-1 text-stone-600">{job.job_type} · {job.suburb}</p>
         </div>
-        <div className="flex items-center gap-3">
-          <StatusBadge status={job.status} />
-          <StatusForm jobId={job.id} current={job.status} />
-        </div>
+        <StatusForm jobId={job.id} current={job.status} />
       </div>
 
       <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-stone-200 bg-stone-200 sm:grid-cols-4">

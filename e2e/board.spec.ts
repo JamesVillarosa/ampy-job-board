@@ -14,7 +14,7 @@ test("filters by status and keeps it in the URL", async ({ page }) => {
   await expect(page).toHaveURL(/status=On\+Hold/);
   const count = await rows(page).count();
   expect(count).toBeGreaterThan(0);
-  for (const badge of await rows(page).locator("td:nth-child(4)").allInnerTexts()) expect(badge).toContain("On Hold");
+  for (const row of await rows(page).allInnerTexts()) expect(row).toContain("On Hold");
 });
 
 test("searches by customer, case-insensitive, and shows empty state", async ({ page }) => {

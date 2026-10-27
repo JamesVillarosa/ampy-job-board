@@ -102,7 +102,7 @@ async function Board({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
                 <th scope="col" className="hidden px-4 py-2.5 font-medium md:table-cell">Job</th>
                 <th scope="col" className="px-4 py-2.5 font-medium">Customer</th>
                 <th scope="col" className="hidden px-4 py-2.5 font-medium lg:table-cell">Job type</th>
-                <th scope="col" className="px-4 py-2.5 font-medium">Status</th>
+                <th scope="col" className="hidden px-4 py-2.5 font-medium sm:table-cell">Status</th>
                 <th scope="col" className="hidden px-4 py-2.5 font-medium sm:table-cell">Date</th>
                 <th scope="col" className="px-4 py-2.5 text-right font-medium">Value</th>
               </tr>
@@ -119,9 +119,10 @@ async function Board({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
                       {j.suburb}
                       <span className="lg:hidden"> · {j.job_type}</span>
                     </div>
+                    <div className="mt-1.5 sm:hidden"><StatusBadge status={j.status} /></div>
                   </td>
                   <td className="hidden px-4 py-3 text-stone-700 lg:table-cell">{j.job_type}</td>
-                  <td className="px-4 py-3"><StatusBadge status={j.status} /></td>
+                  <td className="hidden px-4 py-3 sm:table-cell"><StatusBadge status={j.status} /></td>
                   <td className="tabular hidden px-4 py-3 whitespace-nowrap text-stone-600 sm:table-cell">{date(j.scheduled_for)}</td>
                   <td className="tabular px-4 py-3 text-right font-medium whitespace-nowrap">{money(j.value)}</td>
                 </tr>

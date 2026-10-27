@@ -45,7 +45,7 @@ export function StatusForm({ jobId, current }: { jobId: number; current: Status 
   const [state, action, pending] = useActionState<FormState, FormData>(setStatus.bind(null, jobId), {});
   return (
     <form action={action} className="flex flex-wrap items-center gap-2">
-      <label htmlFor="status" className="sr-only">Status</label>
+      <label htmlFor="status" className="text-sm text-stone-500">Status</label>
       <select
         id="status"
         name="status"
