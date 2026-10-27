@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { Montserrat } from "next/font/google";
+import { aiEnabled } from "@/lib/ai";
+import { AskBoard } from "./ask";
 import "./globals.css";
 
 const brand = Montserrat({ variable: "--font-brand", subsets: ["latin"], weight: ["400", "500", "600", "700", "800", "900"] });
@@ -75,6 +77,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             <p className="mx-auto max-w-7xl px-4 py-5 text-xs sm:px-6">© Ampy Electrical · Internal tools</p>
           </div>
         </footer>
+        <AskBoard enabled={aiEnabled()} />
       </body>
     </html>
   );

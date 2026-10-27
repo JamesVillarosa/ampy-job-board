@@ -103,8 +103,17 @@ body {
   }
 }
 
+/* Chat panel grows out of its launcher button. */
+@keyframes pop {
+  from { opacity: 0; transform: translateY(8px) scale(0.96); }
+}
+.ask-panel:not([hidden]) {
+  transform-origin: bottom right;
+  animation: pop 200ms var(--ease-out-strong);
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .rise, .grow, .drive-in, .hero-zoom, .reveal { animation: none; }
+  .rise, .grow, .drive-in, .hero-zoom, .reveal, .ask-panel:not([hidden]) { animation: none; }
   .ticker { overflow-x: auto; }
   .ticker-track { animation: none; }
 }

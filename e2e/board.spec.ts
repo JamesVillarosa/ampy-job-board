@@ -95,6 +95,25 @@ test("digest endpoint summarises the board for automations", async ({ request })
   expect(body.text).toContain("in the pipeline");
 });
 
+// CI has no ANTHROPIC_API_KEY, so these cover the "AI off" path; the live path was checked against a mock API.
+test("AI brief explains how to turn it on when no key is set", async ({ page }) => {
+  await page.goto("/jobs/2");
+  await expect(page.getByRole("heading", { name: "AI handover brief" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Write brief" })).toBeDisabled();
+});
+
+test("ask-the-board opens, explains AI is off, and closes on Escape", async ({ page, request }) => {
+  await page.goto("/");
+  const launcher = page.getByRole("button", { name: "Ask the board" });
+  await launcher.click();
+  const panel = page.getByRole("dialog", { name: "Ask the board" });
+  await expect(panel.getByText("AI is off")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(panel).toBeHidden();
+  await expect(launcher).toBeFocused();
+  expect((await request.post("/api/ask", { data: { question: "hi" } })).status()).toBe(503);
+});
+
 test("health endpoint reports DB up", async ({ request }) => {
   const res = await request.get("/api/health");
   expect(res.ok()).toBeTruthy();
