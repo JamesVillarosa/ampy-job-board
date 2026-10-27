@@ -159,7 +159,7 @@ async function Board({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
                   <tr
                     key={j.id}
                     style={{ ["--i" as string]: i }}
-                    className="rise group relative transition-colors duration-150 hover:bg-brand-soft/60 has-[a:focus-visible]:bg-brand-soft"
+                    className="rise group relative transition-colors duration-150 hover:bg-brand-soft/60 has-[a:focus-visible]:bg-brand-soft has-[a:focus-visible]:outline-2 has-[a:focus-visible]:-outline-offset-2 has-[a:focus-visible]:outline-brand"
                   >
                     <td className="tabular hidden py-4 pl-6 text-xs font-semibold text-muted md:table-cell">{j.job_number}</td>
                     <td className="py-4 pl-5 md:pl-4">
