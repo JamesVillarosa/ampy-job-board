@@ -1,36 +1,68 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Ampy Job Board
 
-## Getting Started
+A small internal job board for Ampy Electrical: every job in one list, filter and search it, open a job to change its status or leave a note. Next.js 16 + Postgres, deployed on Railway.
 
-First, run the development server:
+**Live:** _add Railway URL_ · **Health:** `/api/health`
+
+## What it does
+
+- **Job list** of 20 sample jobs (customer, suburb, job type, status, value, date) using real Bendigo-region suburbs and Ampy's service mix.
+- **Filter by status** (with live counts) and **search by customer** (case-insensitive, debounced as you type).
+- **Sort** by date, value or customer.
+- Filters, search and sort live in the **URL**, so a view like "On Hold, highest value" can be bookmarked or sent to someone.
+- **Dashboard strip**: open pipeline value, in-progress and on-hold totals, completed value.
+- **Job detail page** with an **add note** box that saves to Postgres, plus a **status change** control. Notes and status changes form one **activity timeline**, so you can see who changed what and when.
+- **Mobile friendly**: techs can check a job from their phone.
+
+## Reliability
+
+- `/api/health` checks the database and returns `503` if it's unreachable. Railway uses it as the deploy healthcheck, so a broken build never replaces a working one.
+- Inputs are validated on the server (note length, known statuses, numeric ids). All SQL is parameterised.
+- Status changes run in a transaction with a row lock, so two people changing the same job can't corrupt the log.
+- **20 Playwright end-to-end tests** (desktop + mobile) cover listing, filtering, search, sort, notes persisting after reload, validation, status changes, 404s and health.
+- **GitHub Actions CI** runs lint, typecheck, migrations and the full e2e suite against a real Postgres on every push.
+
+## Run locally
 
 ```bash
+docker run -d --name ampy-pg -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=ampy -p 5433:5432 postgres:17-alpine
+cp .env.example .env.local   # DATABASE_URL=postgres://postgres:postgres@localhost:5433/ampy
+npm install
+npm run db:migrate           # creates tables, seeds 20 jobs if empty
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run test:e2e             # builds and runs the Playwright suite
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`npm run db:reset` drops and reseeds.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Deploy (Railway)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. New project → Deploy from GitHub repo → `ampy-job-board`.
+2. Add a Postgres database to the project.
+3. On the app service set `DATABASE_URL = ${{Postgres.DATABASE_URL}}`.
+4. Settings → Networking → Generate domain.
 
-## Learn More
+`npm start` runs the migration before booting, so schema and seed data are applied on every deploy (idempotent). `railway.json` sets the healthcheck and restart policy.
 
-To learn more about Next.js, take a look at the following resources:
+## Structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+scripts/migrate.mjs        schema + seed (safe to re-run)
+src/lib/db.ts              all SQL queries
+src/lib/status.ts          statuses shared by server and client
+src/app/page.tsx           job list, stats, filters
+src/app/filters.tsx        search + sort (client, URL-synced)
+src/app/jobs/[id]/         detail page, server actions for notes + status
+src/app/api/health/        healthcheck
+e2e/                       Playwright tests
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## How I built it
 
-## Deploy on Vercel
+Built with Claude Code, as the brief asked. I scoped the features, set the data model and the testing approach, and reviewed every change. Claude Code did the scaffolding and first drafts. I ran the Playwright suite in a loop to catch bugs, for example a search box that dropped keystrokes while the URL updated, and a race between parallel test workers on the shared database.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Next steps if this became a real tool
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Pull jobs from the ServiceTitan API on a schedule instead of seed data.
+- Sign-in, so each note records who wrote it.
+- Push status changes back to ServiceTitan; link invoiced jobs to Xero.
