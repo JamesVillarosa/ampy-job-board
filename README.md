@@ -13,13 +13,17 @@ A small internal job board for Ampy Electrical: every job in one list, filter an
 - **Dashboard strip**: open pipeline value, in-progress and on-hold totals, completed value.
 - **Job detail page** with an **add note** box that saves to Postgres, plus a **status change** control. Notes and status changes form one **activity timeline**, so you can see who changed what and when.
 - **Mobile friendly**: techs can check a job from their phone.
+- **Overdue alert**: jobs still marked Scheduled after their booked day are flagged on the board, with a one-click filter to review them.
+- **AI handover brief** (Claude): one button on a job turns its notes and status history into what the next tech needs to know.
+- **Ask the board** (Claude): a chat panel on every page answers questions like `What's overdue?` or `Biggest open job in Marong?` from the live job list.
+- **Morning digest**: `GET /api/digest` returns open pipeline, overdue and next-up jobs plus a ready-to-send `text` line. Point a cron, n8n or Zapier at it and post to Slack or SMS.
 
 ## Reliability
 
 - `/api/health` checks the database and returns `503` if it's unreachable. Railway uses it as the deploy healthcheck, so a broken build never replaces a working one.
 - Inputs are validated on the server (note length, known statuses, numeric ids). All SQL is parameterised.
 - Status changes run in a transaction with a row lock, so two people changing the same job can't corrupt the log.
-- **20 Playwright end-to-end tests** (desktop + mobile) cover listing, filtering, search, sort, notes persisting after reload, validation, status changes, 404s and health.
+- **28 Playwright end-to-end tests** (desktop + mobile) cover listing, filtering, search, sort, notes persisting after reload, validation, status changes, overdue flags, the digest, the AI-off states, 404s and health.
 - **GitHub Actions CI** runs lint, typecheck, migrations and the full e2e suite against a real Postgres on every push.
 
 ## Run locally
@@ -39,7 +43,7 @@ npm run test:e2e             # builds and runs the Playwright suite
 
 1. New project → Deploy from GitHub repo → `ampy-job-board`.
 2. Add a Postgres database to the project.
-3. On the app service set `DATABASE_URL = ${{Postgres.DATABASE_URL}}`.
+3. On the app service set `DATABASE_URL = ${{Postgres.DATABASE_URL}}`. Optional: `ANTHROPIC_API_KEY` turns on the AI brief and chat (`ANTHROPIC_MODEL` overrides the default `claude-haiku-5-5`).
 4. Settings → Networking → Generate domain.
 
 `npm start` runs the migration before booting, so schema and seed data are applied on every deploy (idempotent). `railway.json` sets the healthcheck and restart policy.
@@ -54,6 +58,9 @@ src/app/page.tsx           job list, stats, filters
 src/app/filters.tsx        search + sort (client, URL-synced)
 src/app/jobs/[id]/         detail page, server actions for notes + status
 src/app/api/health/        healthcheck
+src/app/api/digest/        morning digest JSON for automations
+src/app/api/ask/           ask-the-board endpoint
+src/lib/ai.ts              Claude Messages API call (plain fetch)
 e2e/                       Playwright tests
 ```
 
