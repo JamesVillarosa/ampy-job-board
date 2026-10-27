@@ -5,7 +5,8 @@ import { getJob } from "@/lib/db";
 import { STATUS_STYLE } from "@/lib/status";
 import { date, dateTime, money } from "@/lib/format";
 import { Eyebrow } from "../../components";
-import { NoteForm, StatusForm } from "./forms";
+import { aiEnabled } from "@/lib/ai";
+import { AiBrief, NoteForm, StatusForm } from "./forms";
 
 export async function generateMetadata({ params }: PageProps<"/jobs/[id]">) {
   const data = await load((await params).id);
@@ -96,7 +97,8 @@ async function JobDetail({ params }: Pick<PageProps<"/jobs/[id]">, "params">) {
           </ol>
         </section>
 
-        <aside aria-label="Job details" className="h-fit rounded-3xl bg-white p-5 ring-1 ring-line sm:p-6 lg:sticky lg:top-28">
+        <div className="h-fit space-y-6 lg:sticky lg:top-28">
+        <aside aria-label="Job details" className="rounded-3xl bg-white p-5 ring-1 ring-line sm:p-6">
           <h2 className="text-[11px] font-bold tracking-wider text-muted uppercase">Job details</h2>
           <dl className="mt-4 divide-y divide-line text-sm">
             <Row k="Booked" v={date(job.scheduled_for)} />
@@ -116,6 +118,8 @@ async function JobDetail({ params }: Pick<PageProps<"/jobs/[id]">, "params">) {
             Call the office
           </a>
         </aside>
+        <AiBrief jobId={job.id} enabled={aiEnabled()} />
+        </div>
       </div>
     </div>
   );

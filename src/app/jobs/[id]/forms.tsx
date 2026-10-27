@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import { STATUSES, type Status } from "@/lib/status";
-import { addNote, setStatus, type FormState } from "./actions";
+import { addNote, briefJob, setStatus, type BriefState, type FormState } from "./actions";
 
 const MAX = 2000;
 
@@ -46,6 +46,39 @@ export function NoteForm({ jobId }: { jobId: number }) {
         </div>
       </div>
     </form>
+  );
+}
+
+export function AiBrief({ jobId, enabled }: { jobId: number; enabled: boolean }) {
+  const [state, action, pending] = useActionState<BriefState>(() => briefJob(jobId), {});
+  return (
+    <section aria-labelledby="brief" className="rounded-3xl bg-ink p-5 text-white sm:p-6">
+      <div className="flex items-center justify-between gap-3">
+        <h2 id="brief" className="flex items-center gap-2 text-[11px] font-bold tracking-wider text-white/70 uppercase">
+          <svg aria-hidden viewBox="0 0 20 20" className="size-4 text-brand" fill="currentColor"><path d="M10 1l2.2 5.8L18 9l-5.8 2.2L10 17l-2.2-5.8L2 9l5.8-2.2L10 1Z" /></svg>
+          AI handover brief
+        </h2>
+        <form action={action}>
+          <button
+            disabled={!enabled || pending}
+            className="h-8 rounded-lg bg-brand px-3 text-xs font-bold tracking-wide uppercase transition-[background-color,transform,opacity] duration-150 ease-out hover:bg-brand-deep active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+          >
+            {pending ? "Writing…" : state.text ? "Refresh" : "Write brief"}
+          </button>
+        </form>
+      </div>
+      <div aria-live="polite" className="mt-4 text-sm leading-relaxed">
+        {state.text ? (
+          <p key={state.text} className="rise font-medium text-white/90">{state.text}</p>
+        ) : state.error ? (
+          <p role="alert" className="font-semibold text-red-300">{state.error}</p>
+        ) : (
+          <p className="text-white/55">
+            {enabled ? "Claude reads the notes and status history and writes what the next tech needs to know." : "Turn on by setting ANTHROPIC_API_KEY on the server."}
+          </p>
+        )}
+      </div>
+    </section>
   );
 }
 
