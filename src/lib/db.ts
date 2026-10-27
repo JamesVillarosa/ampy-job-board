@@ -37,8 +37,8 @@ export type Sort = keyof typeof SORTS;
 export const isSort = (s: unknown): s is Sort => typeof s === "string" && s in SORTS;
 
 export async function listJobs({ status, q, sort }: { status?: Status; q?: string; sort: Sort }) {
-  return sql<Job[]>`
-    select * from jobs
+  return sql<(Job & { overdue: boolean })[]>`
+    select *, ${OVERDUE} as overdue from jobs
     where true
       ${status ? sql`and status = ${status}` : sql``}
       ${q ? sql`and customer ilike ${"%" + q.replace(/[%_\\]/g, "\\$&") + "%"}` : sql``}
@@ -52,6 +52,14 @@ export async function getStats() {
     Status,
     { count: number; total: number }
   >;
+}
+
+// Still "Scheduled" but the booked day has passed: someone forgot to update it, or the visit slipped.
+// ponytail: compares against the DB server's date (UTC); set the DB timezone to Australia/Melbourne in prod.
+export const OVERDUE = sql`(status = 'Scheduled' and scheduled_for < current_date)`;
+
+export async function overdueJobs() {
+  return sql<Job[]>`select * from jobs where ${OVERDUE} order by scheduled_for, id`;
 }
 
 // Next open bookings, for the run-sheet ticker.

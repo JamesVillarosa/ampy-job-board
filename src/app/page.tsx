@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
-import { getStats, isSort, isStatus, listJobs, STATUSES, upcomingJobs, type Job, type Status } from "@/lib/db";
+import { getStats, isSort, isStatus, listJobs, overdueJobs, STATUSES, upcomingJobs, type Job, type Status } from "@/lib/db";
 import { STATUS_STYLE } from "@/lib/status";
 import { date, money } from "@/lib/format";
 import { Eyebrow, StatusBadge } from "./components";
@@ -61,7 +61,7 @@ async function Board({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
   const q = typeof sp.q === "string" ? sp.q.trim().slice(0, 100) : "";
   const sort = isSort(sp.sort) ? sp.sort : "newest";
 
-  const [jobs, stats, upcoming] = await Promise.all([listJobs({ status, q, sort }), getStats(), upcomingJobs()]);
+  const [jobs, stats, upcoming, overdue] = await Promise.all([listJobs({ status, q, sort }), getStats(), upcomingJobs(), overdueJobs()]);
   const open = OPEN.reduce((a, s) => ({ count: a.count + stats[s].count, total: a.total + stats[s].total }), { count: 0, total: 0 });
   const all = STATUSES.reduce((n, s) => n + stats[s].count, 0);
   const grand = STATUSES.reduce((n, s) => n + stats[s].total, 0) || 1;
@@ -170,6 +170,25 @@ async function Board({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
           </Suspense>
         </div>
 
+        {overdue.length > 0 && (
+          <div role="status" className="flex flex-col gap-3 rounded-2xl bg-white p-4 ring-1 ring-red-200 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+            <p className="flex items-start gap-3 text-sm font-medium text-ink/80">
+              <span aria-hidden className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-red-600 text-xs font-black text-white">!</span>
+              <span>
+                <strong className="font-extrabold text-ink">{overdue.length} {overdue.length === 1 ? "job is" : "jobs are"} past the booked date</strong> and still
+                marked Scheduled: {overdue.map((j) => j.customer).join(", ")}.
+              </span>
+            </p>
+            <Link
+              href="/?status=Scheduled&sort=oldest"
+              scroll={false}
+              className="inline-flex h-10 shrink-0 items-center justify-center rounded-lg bg-ink px-4 text-[13px] font-bold tracking-wide text-white uppercase transition-[background-color,transform] duration-150 ease-out hover:bg-ink/85 active:scale-[0.97]"
+            >
+              Review overdue
+            </Link>
+          </div>
+        )}
+
         <nav aria-label="Filter by status" className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-0">
           <ul className="flex w-max gap-2">
             {[undefined, ...STATUSES].map((s) => {
@@ -235,11 +254,17 @@ async function Board({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
                         {j.suburb}
                         <span className="lg:hidden"> · {j.job_type}</span>
                       </div>
-                      <div className="mt-2 sm:hidden"><StatusBadge status={j.status} /></div>
+                      <div className="mt-2 flex gap-1.5 sm:hidden">
+                        <StatusBadge status={j.status} />
+                        {j.overdue && <span className="rounded-md bg-red-50 px-2 py-1 text-[11px] font-bold tracking-wide text-red-700 uppercase ring-1 ring-red-200 ring-inset">Overdue</span>}
+                      </div>
                     </td>
                     <td className="hidden px-4 py-4 font-medium text-ink/80 lg:table-cell">{j.job_type}</td>
                     <td className="hidden px-4 py-4 sm:table-cell"><StatusBadge status={j.status} /></td>
-                    <td className="tabular hidden px-4 py-4 font-medium whitespace-nowrap text-ink/70 sm:table-cell">{date(j.scheduled_for)}</td>
+                    <td className="tabular hidden px-4 py-4 font-medium whitespace-nowrap text-ink/70 sm:table-cell">
+                      {date(j.scheduled_for)}
+                      {j.overdue && <span className="ml-2 rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-red-700 uppercase ring-1 ring-red-200 ring-inset">Overdue</span>}
+                    </td>
                     <td className="tabular py-4 pr-5 pl-4 text-right text-[15px] font-extrabold whitespace-nowrap sm:pr-6">
                       <span className="inline-flex items-center gap-2">
                         {money(j.value)}

@@ -81,6 +81,20 @@ test("unknown job shows not found", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Job not found" })).toBeVisible();
 });
 
+test("flags scheduled jobs past their booked date", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("status").filter({ hasText: "past the booked date" })).toBeVisible();
+  await page.getByRole("link", { name: "Review overdue" }).click();
+  await expect(page).toHaveURL(/status=Scheduled/);
+  await expect(page.locator("tbody tr").first().getByText("Overdue").filter({ visible: true })).toBeVisible();
+});
+
+test("digest endpoint summarises the board for automations", async ({ request }) => {
+  const body = await (await request.get("/api/digest")).json();
+  expect(body.overdue.length).toBeGreaterThan(0);
+  expect(body.text).toContain("in the pipeline");
+});
+
 test("health endpoint reports DB up", async ({ request }) => {
   const res = await request.get("/api/health");
   expect(res.ok()).toBeTruthy();
