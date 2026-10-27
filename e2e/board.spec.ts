@@ -5,7 +5,7 @@ const rows = (page: import("@playwright/test").Page) => page.locator("tbody tr")
 test("lists 20 seeded jobs with stats", async ({ page }) => {
   await page.goto("/");
   await expect(rows(page)).toHaveCount(20);
-  await expect(page.getByText("Open pipeline")).toBeVisible();
+  await expect(page.getByRole("heading", { name: /in the pipeline/i })).toBeVisible();
 });
 
 test("filters by status and keeps it in the URL", async ({ page }) => {
@@ -14,7 +14,7 @@ test("filters by status and keeps it in the URL", async ({ page }) => {
   await expect(page).toHaveURL(/status=On\+Hold/);
   const count = await rows(page).count();
   expect(count).toBeGreaterThan(0);
-  for (const row of await rows(page).allInnerTexts()) expect(row).toContain("On Hold");
+  for (const row of await rows(page).allInnerTexts()) expect(row.toLowerCase()).toContain("on hold");
 });
 
 test("searches by customer, case-insensitive, and shows empty state", async ({ page }) => {
@@ -68,12 +68,12 @@ test("rejects an empty note", async ({ page }) => {
 
 test("changes status and logs it", async ({ page }) => {
   await page.goto("/jobs/3");
-  const select = page.getByLabel("Status");
-  const next = (await select.inputValue()) === "Completed" ? "In Progress" : "Completed";
-  await select.selectOption(next);
+  const done = page.getByRole("button", { name: "Completed", exact: true });
+  const next = (await done.getAttribute("aria-pressed")) === "true" ? "In Progress" : "Completed";
+  await page.getByRole("button", { name: next, exact: true }).click();
   await expect(page.locator("ol li").first()).toContainText(`→ ${next}`);
   await page.reload();
-  await expect(page.getByLabel("Status")).toHaveValue(next);
+  await expect(page.getByRole("button", { name: next, exact: true })).toHaveAttribute("aria-pressed", "true");
 });
 
 test("unknown job shows not found", async ({ page }) => {

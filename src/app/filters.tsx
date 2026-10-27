@@ -3,6 +3,9 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 
+const field =
+  "h-11 rounded-xl border-0 bg-white text-sm font-medium shadow-[0_1px_2px_rgb(60_30_10/0.06)] ring-1 ring-line outline-none transition-[box-shadow] duration-150 focus:ring-2 focus:ring-brand";
+
 // Search + sort live in the URL so a filtered view can be shared or bookmarked.
 export function Filters() {
   const router = useRouter();
@@ -32,17 +35,17 @@ export function Filters() {
   }
 
   return (
-    <form role="search" className="flex flex-1 gap-2 sm:max-w-md" onSubmit={(e) => e.preventDefault()}>
-      <label className="relative flex-1">
+    <form role="search" className="flex w-full gap-2 lg:w-auto" onSubmit={(e) => e.preventDefault()}>
+      <label className="relative flex-1 lg:w-80">
         <span className="sr-only">Search customers</span>
-        <svg aria-hidden viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.75" className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-stone-400">
+        <svg aria-hidden viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted">
           <circle cx="9" cy="9" r="6" /><path d="m14 14 3.5 3.5" strokeLinecap="round" />
         </svg>
         <input
           type="search"
           name="q"
           value={q}
-          placeholder="Search customer…"
+          placeholder="Search customer"
           autoComplete="off"
           onChange={(e) => {
             const v = e.target.value;
@@ -50,9 +53,9 @@ export function Filters() {
             clearTimeout(timer.current);
             timer.current = setTimeout(() => push("q", v.trim()), 200);
           }}
-          className="h-10 w-full rounded-lg border border-stone-300 bg-white pr-9 pl-9 text-sm shadow-xs outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-stone-400 focus:border-brand focus:ring-3 focus:ring-brand/15"
+          className={`${field} w-full pr-10 pl-10 placeholder:text-muted/80`}
         />
-        <span aria-hidden className={`absolute top-1/2 right-3 size-3.5 -translate-y-1/2 rounded-full border-2 border-stone-300 border-t-brand transition-opacity duration-150 ${pending ? "animate-spin opacity-100" : "opacity-0"}`} />
+        <span aria-hidden className={`absolute top-1/2 right-3.5 size-4 -translate-y-1/2 rounded-full border-2 border-line border-t-brand transition-opacity duration-150 ${pending ? "animate-spin opacity-100" : "opacity-0"}`} />
       </label>
       <label>
         <span className="sr-only">Sort jobs</span>
@@ -60,10 +63,10 @@ export function Filters() {
           name="sort"
           value={params.get("sort") ?? "newest"}
           onChange={(e) => push("sort", e.target.value === "newest" ? "" : e.target.value)}
-          className="h-10 rounded-lg border border-stone-300 bg-white px-3 text-sm shadow-xs outline-none focus:border-brand focus:ring-3 focus:ring-brand/15"
+          className={`${field} px-3 font-semibold`}
         >
-          <option value="newest">Latest date</option>
-          <option value="oldest">Earliest date</option>
+          <option value="newest">Latest booked</option>
+          <option value="oldest">Earliest booked</option>
           <option value="value">Highest value</option>
           <option value="customer">Customer A–Z</option>
         </select>
