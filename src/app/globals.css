@@ -1,21 +1,19 @@
 @import "tailwindcss";
 
 @theme inline {
-  --font-sans: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
-  /* Job numbers and money only: they read like a run sheet and line up in columns. */
-  --font-mono: var(--font-figures), ui-monospace, monospace;
-  --color-brand: #f0561a;
-  --color-brand-deep: #d2470f;
+  --font-sans: var(--font-brand), ui-sans-serif, system-ui, sans-serif;
+  --color-brand: #ff5e1e;
+  --color-brand-deep: #e04a0e;
   --color-brand-soft: #fff1ea;
-  --color-ink: #1c1917;
-  --color-canvas: #f5f5f4;
-  --color-line: #e7e5e4;
-  --color-muted: #6b625c;
+  --color-ink: #1a130e;
+  --color-canvas: #f6f4f2;
+  --color-line: #ebe5df;
+  --color-muted: #6f625a;
   --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 html {
-  scroll-padding-top: 5rem; /* keep focused rows clear of the sticky header */
+  scroll-padding-top: 6rem; /* keep focused rows clear of the sticky header */
 }
 
 body {
@@ -24,24 +22,35 @@ body {
 }
 
 @utility shell {
-  @apply mx-auto w-full max-w-6xl px-4 sm:px-6;
+  @apply mx-auto w-full max-w-7xl px-4 sm:px-6;
 }
 
 .tabular {
   font-variant-numeric: tabular-nums;
 }
 
-/* New chat bubbles and notes fade in; state change, not decoration. */
+/* Ampy orange with a soft light in one corner and shade in the other, so it isn't flat. */
+.brand-panel {
+  background:
+    radial-gradient(120% 90% at 0% 0%, rgb(255 255 255 / 0.16), transparent 55%),
+    radial-gradient(80% 80% at 100% 100%, rgb(160 40 0 / 0.22), transparent 60%),
+    var(--color-brand);
+}
+
+/* New chat bubbles, notes and the brief fade in: a state change, not decoration. */
 @keyframes enter {
   from { opacity: 0; transform: translateY(4px); }
 }
 .enter {
-  animation: enter 200ms var(--ease-out-strong);
+  animation: enter 220ms var(--ease-out-strong);
 }
 
-/* Chat panel grows out of its launcher button. */
+/* Popovers (chat panel, sort menu) grow out of the button that opened them. */
 @keyframes pop {
-  from { opacity: 0; transform: translateY(6px) scale(0.97); }
+  from { opacity: 0; transform: translateY(-4px) scale(0.97); }
+}
+.pop {
+  animation: pop 160ms var(--ease-out-strong);
 }
 .ask-panel:not([hidden]) {
   transform-origin: bottom right;
@@ -49,5 +58,5 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .enter, .ask-panel:not([hidden]) { animation: none; }
+  .enter, .pop, .ask-panel:not([hidden]) { animation: none; }
 }

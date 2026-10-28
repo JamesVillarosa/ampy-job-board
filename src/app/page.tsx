@@ -1,13 +1,20 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { getStats, isSort, isStatus, listJobs, overdueJobs, STATUSES, type Status } from "@/lib/db";
-import { date, money } from "@/lib/format";
 import { STATUS_STYLE } from "@/lib/status";
-import { StatusBadge } from "./components";
+import { date, money } from "@/lib/format";
+import { StatusBadge, Tech } from "./components";
 import { Filters } from "./filters";
 
-const OPEN: Status[] = ["Scheduled", "In Progress", "On Hold"];
+const OPEN: Status[] = ["In Progress", "Scheduled", "On Hold"];
+// Shades that read on the orange panel.
+const SPLIT: Partial<Record<Status, string>> = { "In Progress": "bg-white", Scheduled: "bg-white/50", "On Hold": "bg-amber-200" };
 const today = new Intl.DateTimeFormat("en-AU", { weekday: "long", day: "numeric", month: "long", timeZone: "Australia/Melbourne" });
+const hour = new Intl.DateTimeFormat("en-AU", { hour: "numeric", hourCycle: "h23", timeZone: "Australia/Melbourne" });
+const greeting = () => {
+  const h = Number(hour.format(new Date()));
+  return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
+};
 
 export default function Home({ searchParams }: PageProps<"/">) {
   return (
@@ -21,10 +28,9 @@ export default function Home({ searchParams }: PageProps<"/">) {
 
 function BoardSkeleton() {
   return (
-    <div aria-busy className="space-y-5">
-      <div className="h-14 w-64 animate-pulse rounded-lg bg-line" />
-      <div className="h-24 animate-pulse rounded-xl bg-line/70" />
-      <div className="h-[480px] animate-pulse rounded-xl bg-line/70" />
+    <div aria-busy className="space-y-8">
+      <div className="brand-panel h-72 animate-pulse rounded-3xl" />
+      <div className="h-[480px] animate-pulse rounded-2xl bg-line/70" />
     </div>
   );
 }
@@ -47,160 +53,208 @@ async function Board({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
     return p.size ? `/?${p}` : "/";
   };
 
-  const summary: [string, number, number][] = [
-    ["Open pipeline", open.total, open.count],
-    ["In progress", stats["In Progress"].total, stats["In Progress"].count],
-    ["On hold", stats["On Hold"].total, stats["On Hold"].count],
-    ["Completed", stats.Completed.total, stats.Completed.count],
-  ];
-
   return (
-    <div className="space-y-5">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Jobs</h1>
-          <p className="mt-1 text-sm text-muted">{today.format(new Date())}</p>
-        </div>
-        <Suspense>
-          <Filters />
-        </Suspense>
-      </div>
-
-      <div className="overflow-hidden rounded-xl bg-white ring-1 ring-line">
-      <dl className="grid grid-cols-2 sm:grid-cols-4">
-        {summary.map(([label, total, count], i) => (
-          <div key={label} className={`px-4 py-3.5 sm:px-5 ${i % 2 ? "border-l border-line" : ""} ${i > 1 ? "border-t border-line sm:border-t-0" : ""} ${i === 2 ? "sm:border-l" : ""}`}>
-            <dt className="text-xs font-medium text-muted">{label}</dt>
-            <dd className="mt-1 font-mono text-lg font-semibold tracking-tight">{money(total)}</dd>
-            <dd className="tabular text-xs text-muted">{count} {count === 1 ? "job" : "jobs"}</dd>
+    <div className="space-y-8 sm:space-y-10">
+      <section aria-labelledby="today" className="brand-panel overflow-hidden rounded-3xl text-white shadow-[0_24px_48px_-28px_rgb(160_50_0/0.7)]">
+        <div className="grid gap-6 p-5 sm:p-8 lg:grid-cols-[1.25fr_1fr] lg:gap-10">
+          <div className="flex flex-col">
+            <p className="text-sm font-semibold text-white/85">
+              {greeting()}, team · {today.format(new Date())}
+            </p>
+            <h1 id="today" className="mt-2 text-3xl font-extrabold tracking-tight text-balance sm:text-4xl">
+              Here’s the day at a glance
+            </h1>
+            <ul className="mt-6 grid grid-cols-3 gap-2.5 sm:gap-3">
+              {(
+                [
+                  ["In Progress", "On the tools"],
+                  ["Scheduled", "Booked in"],
+                  ["On Hold", "Waiting"],
+                ] as const
+              ).map(([s, label]) => (
+                <li key={s}>
+                  <Link
+                    href={href(s)}
+                    scroll={false}
+                    className="block rounded-2xl bg-white/12 p-3 ring-1 ring-white/25 transition-[background-color,transform] duration-200 ease-out hover:bg-white/20 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:p-4"
+                  >
+                    <span className="tabular block text-3xl font-extrabold sm:text-4xl">{stats[s].count}</span>
+                    <span className="mt-1 block text-xs font-semibold text-white/90 sm:text-sm">{label}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            {/* Where the open work sits. */}
+            <div className="mt-auto pt-6">
+              <p className="text-sm font-medium text-white/90">
+                <span className="tabular text-lg font-extrabold text-white">{money(open.total)}</span> of open work across {open.count} jobs
+              </p>
+              <div className="mt-3 flex h-2.5 gap-0.5 overflow-hidden rounded-full" role="img" aria-label={OPEN.map((s) => `${s} ${money(stats[s].total)}`).join(", ")}>
+                {OPEN.map((s) => (
+                  <span key={s} className={SPLIT[s]} style={{ flexGrow: stats[s].total }} />
+                ))}
+              </div>
+              <ul className="mt-2.5 flex flex-wrap gap-x-5 gap-y-1 text-xs font-semibold text-white/90">
+                {OPEN.map((s) => (
+                  <li key={s} className="flex items-center gap-1.5">
+                    <span aria-hidden className={`size-2 rounded-full ${SPLIT[s]}`} />
+                    {s} <span className="tabular text-white">{money(stats[s].total)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
-        ))}
-      </dl>
-      {/* Where the money sits, by status. */}
-      <div className="flex h-1.5 gap-px bg-line" role="img" aria-label={STATUSES.map((s) => `${s} ${money(stats[s].total)}`).join(", ")}>
-        {STATUSES.map((s) => (
-          <span key={s} className={STATUS_STYLE[s].dot} style={{ flexGrow: stats[s].total }} />
-        ))}
-      </div>
-      </div>
 
-      {overdue.length > 0 && (
-        <div role="status" className="flex flex-col gap-3 rounded-xl bg-white px-4 py-3 ring-1 ring-red-200 sm:flex-row sm:items-center sm:justify-between">
-          <p className="flex gap-2.5 text-sm text-ink/80">
-            <span aria-hidden className="mt-1.5 size-2 shrink-0 rounded-full bg-red-600 ring-4 ring-red-100" />
-            <span>
-              <strong className="font-semibold text-ink">{overdue.length} {overdue.length === 1 ? "job is" : "jobs are"} past the booked date</strong> and still
-              marked Scheduled:{" "}
-              {overdue.map((j, i) => (
-                <span key={j.id}>
-                  {i > 0 && ", "}
-                  <Link href={`/jobs/${j.id}`} className="font-medium text-ink underline decoration-line underline-offset-2 hover:decoration-ink">{j.customer}</Link>
-                </span>
-              ))}
-              .
-            </span>
-          </p>
-          <Link
-            href="/?status=Scheduled&sort=oldest"
-            scroll={false}
-            className="inline-flex h-9 shrink-0 items-center justify-center rounded-lg bg-white px-3.5 text-sm font-medium text-ink ring-1 ring-line transition-[background-color,transform] duration-150 ease-out hover:bg-canvas active:scale-[0.97]"
-          >
-            Review overdue
-          </Link>
-        </div>
-      )}
-
-      <nav aria-label="Filter by status" className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-0">
-        <ul className="flex w-max gap-1.5">
-          {[undefined, ...STATUSES].map((s) => {
-            const active = s === status;
-            return (
-              <li key={s ?? "all"}>
+          <div role="status" className="rounded-2xl bg-white p-5 text-ink shadow-[0_12px_32px_-16px_rgb(60_20_0/0.5)]">
+            {overdue.length > 0 ? (
+              <>
+                <div className="flex items-start gap-3">
+                  <span aria-hidden className="mt-1.5 size-2.5 shrink-0 rounded-full bg-red-500 ring-4 ring-red-100" />
+                  <div>
+                    <h2 className="font-bold">Needs a follow-up</h2>
+                    <p className="mt-0.5 text-sm text-muted">
+                      {overdue.length} {overdue.length === 1 ? "job is" : "jobs are"} past the booked date and still marked Scheduled.
+                    </p>
+                  </div>
+                </div>
+                <ul className="mt-4 divide-y divide-line">
+                  {overdue.slice(0, 3).map((j) => (
+                    <li key={j.id}>
+                      <Link href={`/jobs/${j.id}`} className="group flex items-center justify-between gap-3 py-2.5">
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-semibold group-hover:text-brand-deep">{j.customer}</span>
+                          <span className="block text-xs text-muted">{j.suburb} · booked {date(j.scheduled_for)}</span>
+                        </span>
+                        <span aria-hidden className="text-muted transition-transform duration-200 ease-out group-hover:translate-x-0.5 group-hover:text-brand">→</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
                 <Link
-                  href={href(s)}
+                  href="/?status=Scheduled&sort=oldest"
                   scroll={false}
-                  aria-current={active ? "page" : undefined}
-                  className={`flex h-9 items-center gap-2 rounded-lg px-3 text-sm font-medium whitespace-nowrap transition-[background-color,color,transform] duration-150 ease-out active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
-                    active ? "bg-ink text-white" : "text-ink/70 hover:bg-line/60 hover:text-ink"
-                  }`}
+                  className="mt-3 flex h-10 items-center justify-center rounded-xl bg-ink text-sm font-bold text-white transition-[background-color,transform] duration-150 ease-out hover:bg-ink/85 active:scale-[0.97]"
                 >
-                  {s ?? "All"}
-                  <span className={`tabular text-xs ${active ? "text-white/70" : "text-muted"}`}>{s ? stats[s].count : all}</span>
+                  Review overdue
                 </Link>
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
+              </>
+            ) : (
+              <div className="flex h-full flex-col items-center justify-center py-6 text-center">
+                <span aria-hidden className="grid size-10 place-items-center rounded-full bg-emerald-100 font-bold text-emerald-700">✓</span>
+                <h2 className="mt-3 font-bold">All caught up</h2>
+                <p className="mt-1 text-sm text-muted">No jobs are past their booked date.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
 
-      {jobs.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-line bg-white px-6 py-14 text-center">
-          <p className="font-semibold">No jobs match</p>
-          <p className="mt-1 text-sm text-muted">
-            Nothing for {q ? `“${q}”` : "this filter"}{status ? ` in ${status}` : ""}. Check the spelling or widen the filter.
-          </p>
-          <Link href="/" className="mt-5 inline-flex h-9 items-center rounded-lg bg-brand px-4 text-sm font-medium text-white transition-[background-color,transform] duration-150 ease-out hover:bg-brand-deep active:scale-[0.97]">
-            Clear filters
-          </Link>
+      <section aria-labelledby="jobs-heading" className="space-y-4">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <h2 id="jobs-heading" className="text-2xl font-extrabold tracking-tight">
+            All jobs <span className="tabular text-muted/60">{all}</span>
+          </h2>
+          <Suspense>
+            <Filters />
+          </Suspense>
         </div>
-      ) : (
-        <div className="overflow-hidden rounded-xl bg-white ring-1 ring-line">
-          <table className="w-full text-sm">
-            <caption className="sr-only">{jobs.length} jobs</caption>
-            <thead className="bg-canvas text-left text-xs font-medium text-muted">
-              <tr className="border-b border-line">
-                <th scope="col" className="hidden py-2.5 pl-5 font-medium md:table-cell">Job</th>
-                <th scope="col" className="py-2.5 pl-4 font-medium md:pl-3">Customer</th>
-                <th scope="col" className="hidden px-3 py-2.5 font-medium lg:table-cell">Job type</th>
-                <th scope="col" className="hidden px-3 py-2.5 font-medium sm:table-cell">Status</th>
-                <th scope="col" className="hidden px-3 py-2.5 font-medium xl:table-cell">Tech</th>
-                <th scope="col" className="hidden px-3 py-2.5 font-medium sm:table-cell">Booked</th>
-                <th scope="col" className="py-2.5 pr-4 pl-3 text-right font-medium sm:pr-5">Value</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-line">
-              {jobs.map((j) => (
-                <tr
-                  key={j.id}
-                  className="relative transition-colors duration-150 hover:bg-canvas has-[a:focus-visible]:bg-brand-soft has-[a:focus-visible]:outline-2 has-[a:focus-visible]:-outline-offset-2 has-[a:focus-visible]:outline-brand"
-                >
-                  <td className="hidden py-3 pl-5 font-mono text-xs text-muted md:table-cell">{j.job_number}</td>
-                  <td className="py-3 pl-4 md:pl-3">
-                    <Link href={`/jobs/${j.id}`} className="font-medium text-ink outline-none after:absolute after:inset-0">
-                      {j.customer}
-                    </Link>
-                    <div className="mt-0.5 text-xs text-muted">
-                      {j.suburb}
-                      <span className="lg:hidden"> · {j.job_type}</span>
-                    </div>
-                    <div className="mt-2 flex gap-1.5 sm:hidden">
-                      <StatusBadge status={j.status} />
-                      {j.overdue && <Overdue />}
-                    </div>
-                  </td>
-                  <td className="hidden px-3 py-3 text-ink/80 lg:table-cell">{j.job_type}</td>
-                  <td className="hidden px-3 py-3 sm:table-cell"><StatusBadge status={j.status} /></td>
-                  <td className="hidden px-3 py-3 xl:table-cell">
-                    <span className="flex items-center gap-2 whitespace-nowrap text-ink/80">
-                      <span aria-hidden className="grid size-6 place-items-center rounded-full bg-canvas text-[11px] font-semibold ring-1 ring-line">{j.technician?.[0] ?? "–"}</span>
-                      {j.technician ?? "Unassigned"}
-                    </span>
-                  </td>
-                  <td className="tabular hidden px-3 py-3 whitespace-nowrap text-ink/80 sm:table-cell">
-                    {date(j.scheduled_for)}
-                    {j.overdue && <span className="ml-2"><Overdue /></span>}
-                  </td>
-                  <td className="py-3 pr-4 pl-3 text-right font-mono font-medium whitespace-nowrap sm:pr-5">{money(j.value)}</td>
+
+        <nav aria-label="Filter by status" className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-0">
+          <ul className="flex w-max gap-2">
+            {[undefined, ...STATUSES].map((s) => {
+              const active = s === status;
+              return (
+                <li key={s ?? "all"}>
+                  <Link
+                    href={href(s)}
+                    scroll={false}
+                    aria-current={active ? "page" : undefined}
+                    className={`flex h-10 items-center gap-2 rounded-full px-4 text-sm font-semibold whitespace-nowrap ring-1 transition-[background-color,color,box-shadow,transform] duration-200 ease-out active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
+                      active ? "bg-ink text-white ring-ink" : "bg-white text-ink/75 ring-line hover:text-ink hover:ring-ink/25"
+                    }`}
+                  >
+                    {s && <span aria-hidden className={`size-2 rounded-full ${STATUS_STYLE[s].dot}`} />}
+                    {s ?? "All"}
+                    <span className={`tabular rounded-full px-1.5 text-xs ${active ? "bg-white/15" : "bg-canvas text-muted"}`}>{s ? stats[s].count : all}</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+
+        {jobs.length === 0 ? (
+          <div className="rounded-2xl border-2 border-dashed border-line bg-white px-6 py-14 text-center">
+            <p className="text-lg font-bold">No jobs match</p>
+            <p className="mt-1 text-sm text-muted">
+              Nothing for {q ? `“${q}”` : "this filter"}{status ? ` in ${status}` : ""}. Check the spelling or show everything.
+            </p>
+            <Link href="/" className="mt-5 inline-flex h-10 items-center rounded-xl bg-brand px-5 text-sm font-bold text-white transition-[background-color,transform] duration-150 ease-out hover:bg-brand-deep active:scale-[0.97]">
+              Clear filters
+            </Link>
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgb(60_30_10/0.05),0_12px_32px_-16px_rgb(60_30_10/0.15)] ring-1 ring-line">
+            <table className="w-full text-sm">
+              <caption className="sr-only">{jobs.length} jobs</caption>
+              <thead className="text-left text-xs font-semibold text-muted">
+                <tr className="border-b border-line">
+                  <th scope="col" className="py-3.5 pl-5 sm:pl-6">Customer</th>
+                  <th scope="col" className="hidden px-4 py-3.5 lg:table-cell">Job</th>
+                  <th scope="col" className="hidden px-4 py-3.5 sm:table-cell">Status</th>
+                  <th scope="col" className="hidden px-4 py-3.5 xl:table-cell">Tech</th>
+                  <th scope="col" className="hidden px-4 py-3.5 md:table-cell">Booked</th>
+                  <th scope="col" className="py-3.5 pr-5 pl-4 text-right sm:pr-6">Value</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              </thead>
+              <tbody className="divide-y divide-line/70">
+                {jobs.map((j) => (
+                  <tr
+                    key={j.id}
+                    className="group relative transition-colors duration-150 hover:bg-brand-soft/50 has-[a:focus-visible]:bg-brand-soft has-[a:focus-visible]:outline-2 has-[a:focus-visible]:-outline-offset-2 has-[a:focus-visible]:outline-brand"
+                  >
+                    <td className="py-4 pl-5 sm:pl-6">
+                      <Link href={`/jobs/${j.id}`} className="font-bold text-ink outline-none after:absolute after:inset-0">
+                        {j.customer}
+                      </Link>
+                      <div className="mt-0.5 text-xs font-medium text-muted">
+                        {j.suburb}
+                        <span className="lg:hidden"> · {j.job_type}</span>
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-1.5 sm:hidden">
+                        <StatusBadge status={j.status} />
+                        {j.overdue && <Overdue />}
+                      </div>
+                    </td>
+                    <td className="hidden px-4 py-4 lg:table-cell">
+                      <span className="font-medium text-ink/85">{j.job_type}</span>
+                      <span className="tabular block text-xs text-muted">{j.job_number}</span>
+                    </td>
+                    <td className="hidden px-4 py-4 sm:table-cell">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <StatusBadge status={j.status} />
+                        {j.overdue && <Overdue />}
+                      </div>
+                    </td>
+                    <td className="hidden px-4 py-4 text-ink/85 xl:table-cell"><Tech name={j.technician} /></td>
+                    <td className="tabular hidden px-4 py-4 font-medium whitespace-nowrap text-ink/75 md:table-cell">{date(j.scheduled_for)}</td>
+                    <td className="tabular py-4 pr-5 pl-4 text-right text-[15px] font-bold whitespace-nowrap sm:pr-6">
+                      <span className="inline-flex items-center gap-2">
+                        {money(j.value)}
+                        <span aria-hidden className="hidden text-brand opacity-0 transition-[opacity,transform] duration-200 ease-out group-hover:translate-x-0.5 group-hover:opacity-100 sm:inline">→</span>
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
     </div>
   );
 }
 
 function Overdue() {
-  return <span className="rounded-md bg-red-50 px-1.5 py-0.5 text-xs font-medium text-red-700 ring-1 ring-red-200 ring-inset">Overdue</span>;
+  return <span className="rounded-full bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 ring-1 ring-red-200 ring-inset">Overdue</span>;
 }
