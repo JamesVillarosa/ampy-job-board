@@ -5,7 +5,7 @@ const rows = (page: import("@playwright/test").Page) => page.locator("tbody tr")
 test("lists 20 seeded jobs with stats", async ({ page }) => {
   await page.goto("/");
   await expect(rows(page)).toHaveCount(20);
-  await expect(page.getByRole("heading", { name: /in the pipeline/i })).toBeVisible();
+  await expect(page.getByText("Open pipeline")).toBeVisible();
 });
 
 test("filters by status and keeps it in the URL", async ({ page }) => {
@@ -98,7 +98,7 @@ test("digest endpoint summarises the board for automations", async ({ request })
 test("handover brief summarises the job record", async ({ page }) => {
   await page.goto("/jobs/2");
   await page.getByRole("button", { name: "Write brief" }).click();
-  await expect(page.getByRole("region", { name: "Handover brief" }).locator("p.rise")).toContainText(/ for .+ in /);
+  await expect(page.getByRole("region", { name: "Handover brief" }).locator("p.enter")).toContainText(/ for .+ in /);
 });
 
 test("ask-the-board answers from live jobs and closes on Escape", async ({ page }) => {
@@ -130,4 +130,17 @@ test("health endpoint reports DB up", async ({ request }) => {
   const res = await request.get("/api/health");
   expect(res.ok()).toBeTruthy();
   expect(await res.json()).toMatchObject({ ok: true, db: "up" });
+});
+
+test("slash focuses search and chat links job refs to the job page", async ({ page, isMobile }) => {
+  test.skip(isMobile, "keyboard shortcut is a desktop affordance");
+  await page.goto("/");
+  await page.waitForLoadState("networkidle"); // shortcut binds on hydration
+  await page.keyboard.press("/");
+  await expect(page.getByRole("searchbox", { name: "Search customers" })).toBeFocused();
+  await page.getByRole("button", { name: "Ask the board" }).click();
+  const panel = page.getByRole("dialog", { name: "Ask the board" });
+  await panel.getByRole("button", { name: "Biggest open job?" }).click();
+  await panel.getByRole("link", { name: "AMP-1042" }).click();
+  await expect(page).toHaveURL(/\/jobs\/2$/);
 });

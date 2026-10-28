@@ -6,7 +6,8 @@ import { date, money } from "./format";
 type Row = Job & { overdue: boolean };
 
 const OPEN: Status[] = ["Scheduled", "In Progress", "On Hold"];
-const line = (j: Row) => `${j.job_number} ${j.customer} (${j.suburb}), ${j.job_type}, ${money(j.value)}${j.scheduled_for ? `, ${date(j.scheduled_for)}` : ""}`;
+// [AMP-1041](/jobs/2) is rendered as a link by the chat panel.
+const line = (j: Row) => `[${j.job_number}](/jobs/${j.id}) ${j.customer} (${j.suburb}), ${j.job_type}, ${money(j.value)}${j.scheduled_for ? `, ${date(j.scheduled_for)}` : ""}`;
 const list = (head: string, jobs: Row[], empty: string) => (jobs.length ? `${head}\n${jobs.map((j) => `• ${line(j)}`).join("\n")}` : empty);
 const sum = (jobs: Row[]) => money(jobs.reduce((n, j) => n + Number(j.value), 0));
 const has = (q: string, ...words: string[]) => words.some((w) => q.includes(w));

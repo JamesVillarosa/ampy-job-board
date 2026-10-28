@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 type Turn = { q: string; a?: string; error?: string };
@@ -55,10 +56,10 @@ export function AskBoard() {
         role="dialog"
         aria-label="Ask the board"
         hidden={!open}
-        className="ask-panel flex max-h-[min(560px,calc(100dvh-7rem))] w-[min(380px,calc(100vw-2rem))] flex-col overflow-hidden rounded-3xl bg-white shadow-[0_24px_60px_-20px_rgb(40_20_5/0.45)] ring-1 ring-line"
+        className="ask-panel flex max-h-[min(560px,calc(100dvh-7rem))] w-[min(380px,calc(100vw-2rem))] flex-col overflow-hidden rounded-xl bg-white shadow-[0_16px_40px_-12px_rgb(28_25_23/0.25)] ring-1 ring-line"
       >
-        <div className="brand-panel px-5 py-4 text-white">
-          <p className="text-[11px] font-bold tracking-wider text-white/80 uppercase">Ask the board</p>
+        <div className="border-b border-line px-4 py-3">
+          <p className="text-sm font-semibold">Ask the board</p>
           <p className="mt-0.5 text-sm font-semibold">Questions answered from live jobs.</p>
         </div>
 
@@ -67,10 +68,10 @@ export function AskBoard() {
             <li className="text-muted">Ask about overdue jobs, holds, bookings, suburbs, techs or the pipeline.</li>
           )}
           {turns.map((t, i) => (
-            <li key={i} className="rise space-y-2">
-              <p className="ml-auto w-fit max-w-[85%] rounded-2xl rounded-br-md bg-ink px-3.5 py-2 font-medium text-white">{t.q}</p>
+            <li key={i} className="enter space-y-2">
+              <p className="ml-auto w-fit max-w-[85%] rounded-lg bg-ink px-3 py-2 text-white">{t.q}</p>
               {t.a ? (
-                <p className="w-fit max-w-[90%] rounded-2xl rounded-bl-md bg-paper px-3.5 py-2 leading-relaxed font-medium whitespace-pre-wrap ring-1 ring-line">{t.a}</p>
+                <p className="w-fit max-w-[90%] rounded-lg bg-canvas px-3 py-2 leading-relaxed whitespace-pre-wrap">{withLinks(t.a)}</p>
               ) : t.error ? (
                 <p role="alert" className="font-semibold text-red-700">{t.error}</p>
               ) : (
@@ -87,7 +88,7 @@ export function AskBoard() {
         {turns.length === 0 && (
           <div className="flex flex-wrap gap-1.5 px-5 pb-3">
             {SUGGESTIONS.map((s) => (
-              <button key={s} onClick={() => ask(s)} className="h-8 rounded-full bg-brand-soft px-3 text-xs font-bold text-brand-deep transition-[background-color,transform] duration-150 ease-out hover:bg-brand/15 active:scale-[0.97]">
+              <button key={s} onClick={() => ask(s)} className="h-8 rounded-lg bg-white px-2.5 text-xs font-medium text-ink/80 ring-1 ring-line transition-[background-color,transform] duration-150 ease-out hover:bg-canvas active:scale-[0.97]">
                 {s}
               </button>
             ))}
@@ -109,9 +110,9 @@ export function AskBoard() {
             maxLength={300}
             autoComplete="off"
             placeholder="e.g. Who's on hold and why?"
-            className="h-10 min-w-0 flex-1 rounded-xl bg-paper px-3 text-sm font-medium ring-1 ring-line outline-none placeholder:text-muted/80 focus:ring-2 focus:ring-brand disabled:opacity-60"
+            className="h-9 min-w-0 flex-1 rounded-lg bg-white px-3 text-sm ring-1 ring-line outline-none placeholder:text-muted focus:ring-2 focus:ring-brand disabled:opacity-60"
           />
-          <button disabled={pending} className="h-10 rounded-xl bg-brand px-4 text-xs font-bold tracking-wide text-white uppercase transition-[background-color,transform,opacity] duration-150 ease-out hover:bg-brand-deep active:scale-[0.97] disabled:opacity-50">
+          <button disabled={pending} className="h-9 rounded-lg bg-brand px-3.5 text-sm font-medium text-white transition-[background-color,transform,opacity] duration-150 ease-out hover:bg-brand-deep active:scale-[0.97] disabled:opacity-50">
             Ask
           </button>
         </form>
@@ -122,11 +123,25 @@ export function AskBoard() {
         aria-expanded={open}
         aria-controls="ask-panel"
         onClick={() => setOpen((o) => !o)}
-        className="flex h-12 items-center gap-2 rounded-full bg-ink pr-5 pl-4 text-[13px] font-bold tracking-wide text-white uppercase shadow-[0_12px_30px_-10px_rgb(40_20_5/0.6)] ring-1 ring-white/20 transition-[background-color,transform] duration-150 ease-out hover:bg-ink/90 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+        className="flex h-10 items-center gap-2 rounded-lg bg-ink pr-3.5 pl-3 text-sm font-medium text-white shadow-[0_8px_20px_-8px_rgb(28_25_23/0.5)] transition-[background-color,transform] duration-150 ease-out hover:bg-ink/90 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
       >
         <svg aria-hidden viewBox="0 0 20 20" className="size-4 text-brand" fill="currentColor"><path d="M10 1l2.2 5.8L18 9l-5.8 2.2L10 17l-2.2-5.8L2 9l5.8-2.2L10 1Z" /></svg>
         {open ? "Close" : "Ask the board"}
       </button>
     </div>
   );
+}
+
+// Answers mark job refs as [AMP-1041](/jobs/2); render those as links, the rest as text.
+function withLinks(text: string) {
+  return text.split(/(\[[^\]]+\]\(\/jobs\/\d+\))/).map((part, i) => {
+    const m = part.match(/^\[([^\]]+)\]\((\/jobs\/\d+)\)$/);
+    return m ? (
+      <Link key={i} href={m[2]} className="font-mono font-medium text-brand-deep underline decoration-brand/30 underline-offset-2 hover:decoration-brand">
+        {m[1]}
+      </Link>
+    ) : (
+      part
+    );
+  });
 }
