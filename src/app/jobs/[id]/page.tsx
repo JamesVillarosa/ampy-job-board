@@ -5,7 +5,6 @@ import { getJob } from "@/lib/db";
 import { STATUS_STYLE } from "@/lib/status";
 import { date, dateTime, money } from "@/lib/format";
 import { Eyebrow } from "../../components";
-import { aiEnabled } from "@/lib/ai";
 import { AiBrief, NoteForm, StatusForm } from "./forms";
 
 export async function generateMetadata({ params }: PageProps<"/jobs/[id]">) {
@@ -118,7 +117,7 @@ async function JobDetail({ params }: Pick<PageProps<"/jobs/[id]">, "params">) {
             Call the office
           </a>
         </aside>
-        <AiBrief jobId={job.id} enabled={aiEnabled()} />
+        <AiBrief jobId={job.id} />
         </div>
       </div>
     </div>

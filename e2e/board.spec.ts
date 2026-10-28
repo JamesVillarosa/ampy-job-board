@@ -95,23 +95,35 @@ test("digest endpoint summarises the board for automations", async ({ request })
   expect(body.text).toContain("in the pipeline");
 });
 
-// CI has no ANTHROPIC_API_KEY, so these cover the "AI off" path; the live path was checked against a mock API.
-test("AI brief explains how to turn it on when no key is set", async ({ page }) => {
+test("handover brief summarises the job record", async ({ page }) => {
   await page.goto("/jobs/2");
-  await expect(page.getByRole("heading", { name: "AI handover brief" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Write brief" })).toBeDisabled();
+  await page.getByRole("button", { name: "Write brief" }).click();
+  await expect(page.getByRole("region", { name: "Handover brief" }).locator("p.rise")).toContainText(/ for .+ in /);
 });
 
-test("ask-the-board opens, explains AI is off, and closes on Escape", async ({ page, request }) => {
+test("ask-the-board answers from live jobs and closes on Escape", async ({ page }) => {
   await page.goto("/");
   const launcher = page.getByRole("button", { name: "Ask the board" });
   await launcher.click();
   const panel = page.getByRole("dialog", { name: "Ask the board" });
-  await expect(panel.getByText("AI is off")).toBeVisible();
+  await panel.getByRole("button", { name: "What's on in Strathdale?" }).click();
+  await expect(panel.locator("ol li").last()).toContainText("Sarah Mitchell");
+  await panel.getByLabel("Question").fill("who is on hold?");
+  await panel.getByRole("button", { name: "Ask" }).click();
+  await expect(panel.locator("ol li").last()).toContainText("On hold");
   await page.keyboard.press("Escape");
   await expect(panel).toBeHidden();
   await expect(launcher).toBeFocused();
-  expect((await request.post("/api/ask", { data: { question: "hi" } })).status()).toBe(503);
+});
+
+test("ask API covers the main intents", async ({ request }) => {
+  const ask = async (question: string) => (await (await request.post("/api/ask", { data: { question } })).json()).answer as string;
+  expect(await ask("What's overdue?")).toMatch(/Past the booked date/);
+  expect(await ask("Biggest open job?")).toMatch(/Biggest open jobs/);
+  expect(await ask("pipeline total")).toMatch(/Open pipeline is \$/);
+  expect(await ask("what is Mia doing")).toMatch(/Mia's jobs/);
+  expect(await ask("asdf")).toMatch(/Not sure/);
+  expect((await request.post("/api/ask", { data: { question: "" } })).status()).toBe(400);
 });
 
 test("health endpoint reports DB up", async ({ request }) => {

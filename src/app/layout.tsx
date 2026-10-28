@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { Montserrat } from "next/font/google";
-import { aiEnabled } from "@/lib/ai";
 import { AskBoard } from "./ask";
 import "./globals.css";
 
@@ -61,7 +60,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               <p className="text-xs font-bold tracking-[0.14em] text-brand uppercase">Office</p>
               <ul className="mt-3 space-y-2 font-medium">
                 <li><a href="tel:0344163638" className="transition-colors hover:text-white">(03) 4416 3638</a></li>
-                <li><a href="mailto:hello@ampy.com" className="transition-colors hover:text-white">hello@ampy.com</a></li>
               </ul>
             </div>
             <div>
@@ -77,7 +75,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             <p className="mx-auto max-w-7xl px-4 py-5 text-xs sm:px-6">© Ampy Electrical · Internal tools</p>
           </div>
         </footer>
-        <AskBoard enabled={aiEnabled()} />
+        <AskBoard />
       </body>
     </html>
   );

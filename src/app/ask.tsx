@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 type Turn = { q: string; a?: string; error?: string };
 const SUGGESTIONS = ["What's overdue?", "Biggest open job?", "What's on in Strathdale?"];
 
-export function AskBoard({ enabled }: { enabled: boolean }) {
+export function AskBoard() {
   const [open, setOpen] = useState(false);
   const [turns, setTurns] = useState<Turn[]>([]);
   const [pending, setPending] = useState(false);
@@ -15,6 +15,17 @@ export function AskBoard({ enabled }: { enabled: boolean }) {
 
   useEffect(() => {
     if (open) input.current?.focus();
+  }, [open]);
+  // On document: the Ask button disables while pending, which drops focus out of the panel.
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setOpen(false);
+      launcher.current?.focus();
+    };
+    document.addEventListener("keydown", close);
+    return () => document.removeEventListener("keydown", close);
   }, [open]);
   useEffect(() => {
     log.current?.lastElementChild?.scrollIntoView({ block: "nearest" });
@@ -33,15 +44,12 @@ export function AskBoard({ enabled }: { enabled: boolean }) {
       setTurns((t) => t.map((x, i) => (i === t.length - 1 ? { q, error: "Network error. Try again." } : x)));
     } finally {
       setPending(false);
+      input.current?.focus();
     }
   }
 
   return (
-    <div className="fixed right-4 bottom-4 z-40 flex flex-col items-end gap-3 sm:right-6 sm:bottom-6" onKeyDown={(e) => {
-        if (e.key !== "Escape" || !open) return;
-        setOpen(false);
-        launcher.current?.focus();
-      }}>
+    <div className="fixed right-4 bottom-4 z-40 flex flex-col items-end gap-3 sm:right-6 sm:bottom-6">
       <div
         id="ask-panel"
         role="dialog"
@@ -56,7 +64,7 @@ export function AskBoard({ enabled }: { enabled: boolean }) {
 
         <ol ref={log} className="flex-1 space-y-4 overflow-y-auto px-5 py-4 text-sm" aria-live="polite">
           {turns.length === 0 && (
-            <li className="text-muted">{enabled ? "Try one of these, or type your own." : "AI is off. Set ANTHROPIC_API_KEY on the server to turn it on."}</li>
+            <li className="text-muted">Ask about overdue jobs, holds, bookings, suburbs, techs or the pipeline.</li>
           )}
           {turns.map((t, i) => (
             <li key={i} className="rise space-y-2">
@@ -76,7 +84,7 @@ export function AskBoard({ enabled }: { enabled: boolean }) {
           ))}
         </ol>
 
-        {enabled && turns.length === 0 && (
+        {turns.length === 0 && (
           <div className="flex flex-wrap gap-1.5 px-5 pb-3">
             {SUGGESTIONS.map((s) => (
               <button key={s} onClick={() => ask(s)} className="h-8 rounded-full bg-brand-soft px-3 text-xs font-bold text-brand-deep transition-[background-color,transform] duration-150 ease-out hover:bg-brand/15 active:scale-[0.97]">
@@ -100,11 +108,10 @@ export function AskBoard({ enabled }: { enabled: boolean }) {
             id="ask-input"
             maxLength={300}
             autoComplete="off"
-            disabled={!enabled}
             placeholder="e.g. Who's on hold and why?"
             className="h-10 min-w-0 flex-1 rounded-xl bg-paper px-3 text-sm font-medium ring-1 ring-line outline-none placeholder:text-muted/80 focus:ring-2 focus:ring-brand disabled:opacity-60"
           />
-          <button disabled={!enabled || pending} className="h-10 rounded-xl bg-brand px-4 text-xs font-bold tracking-wide text-white uppercase transition-[background-color,transform,opacity] duration-150 ease-out hover:bg-brand-deep active:scale-[0.97] disabled:opacity-50">
+          <button disabled={pending} className="h-10 rounded-xl bg-brand px-4 text-xs font-bold tracking-wide text-white uppercase transition-[background-color,transform,opacity] duration-150 ease-out hover:bg-brand-deep active:scale-[0.97] disabled:opacity-50">
             Ask
           </button>
         </form>
