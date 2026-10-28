@@ -2,12 +2,9 @@ import { STATUS_STYLE, type Status } from "@/lib/status";
 
 export function StatusBadge({ status }: { status: Status }) {
   return (
-    <span className={`inline-flex items-center rounded-md px-2 py-1 text-[11px] font-bold tracking-wide whitespace-nowrap uppercase ring-1 ring-inset ${STATUS_STYLE[status].badge}`}>
+    <span className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium whitespace-nowrap ring-1 ring-inset ${STATUS_STYLE[status].badge}`}>
+      <span aria-hidden className={`size-1.5 rounded-full ${STATUS_STYLE[status].dot}`} />
       {status}
     </span>
   );
-}
-
-export function Eyebrow({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <p className={`text-xs font-bold tracking-[0.14em] uppercase ${className}`}>{children}</p>;
 }

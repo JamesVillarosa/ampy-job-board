@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
-import { STATUSES, type Status } from "@/lib/status";
+import { STATUS_STYLE, STATUSES, type Status } from "@/lib/status";
 import { addNote, briefJob, setStatus, type BriefState, type FormState } from "./actions";
 
 const MAX = 2000;
@@ -15,8 +15,8 @@ export function NoteForm({ jobId }: { jobId: number }) {
   }, [state.ok]);
 
   return (
-    <form ref={ref} action={action} onReset={() => setLength(0)}className="rounded-2xl bg-paper p-4 ring-1 ring-line transition-shadow duration-150 focus-within:ring-2 focus-within:ring-brand sm:p-5">
-      <label htmlFor="note" className="text-[11px] font-bold tracking-wider text-muted uppercase">Add a note</label>
+    <form ref={ref} action={action} onReset={() => setLength(0)} className="rounded-lg bg-white p-3 ring-1 ring-line transition-shadow duration-150 focus-within:ring-2 focus-within:ring-brand">
+      <label htmlFor="note" className="sr-only">Add a note</label>
       <textarea
         id="note"
         name="body"
@@ -30,7 +30,7 @@ export function NoteForm({ jobId }: { jobId: number }) {
         onKeyDown={(e) => {
           if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) e.currentTarget.form?.requestSubmit();
         }}
-        className="mt-2 block w-full resize-y border-0 bg-transparent p-0 text-[15px] leading-relaxed font-medium outline-none placeholder:text-muted/70"
+        className="block w-full resize-y border-0 bg-transparent p-0 text-sm leading-relaxed outline-none placeholder:text-muted"
       />
       <div className="mt-3 flex items-center justify-between gap-3">
         <p id="note-error" role="alert" className="text-sm font-semibold text-red-700">{state.error}</p>
@@ -39,7 +39,7 @@ export function NoteForm({ jobId }: { jobId: number }) {
           <button
             type="submit"
             disabled={pending}
-            className="inline-flex h-10 items-center justify-center rounded-lg bg-brand px-5 text-[13px] font-bold tracking-wide text-white uppercase shadow-[0_6px_16px_-6px_rgb(255_94_30/0.7)] transition-[background-color,transform,opacity] duration-150 ease-out hover:bg-brand-deep active:scale-[0.97] disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+            className="inline-flex h-9 items-center justify-center rounded-lg bg-brand px-3.5 text-sm font-medium text-white transition-[background-color,transform,opacity] duration-150 ease-out hover:bg-brand-deep active:scale-[0.97] disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
             {pending ? "Saving…" : "Save note"}
           </button>
@@ -52,16 +52,15 @@ export function NoteForm({ jobId }: { jobId: number }) {
 export function AiBrief({ jobId }: { jobId: number }) {
   const [state, action, pending] = useActionState<BriefState>(() => briefJob(jobId), {});
   return (
-    <section aria-labelledby="brief" className="rounded-3xl bg-ink p-5 text-white sm:p-6">
+    <section aria-labelledby="brief" className="rounded-xl bg-white p-5 ring-1 ring-line">
       <div className="flex items-center justify-between gap-3">
-        <h2 id="brief" className="flex items-center gap-2 text-[11px] font-bold tracking-wider text-white/70 uppercase">
-          <svg aria-hidden viewBox="0 0 20 20" className="size-4 text-brand" fill="currentColor"><path d="M10 1l2.2 5.8L18 9l-5.8 2.2L10 17l-2.2-5.8L2 9l5.8-2.2L10 1Z" /></svg>
+        <h2 id="brief" className="text-base font-semibold">
           Handover brief
         </h2>
         <form action={action}>
           <button
             disabled={pending}
-            className="h-8 rounded-lg bg-brand px-3 text-xs font-bold tracking-wide uppercase transition-[background-color,transform,opacity] duration-150 ease-out hover:bg-brand-deep active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+            className="h-8 rounded-lg bg-white px-3 text-sm font-medium ring-1 ring-line transition-[background-color,transform,opacity] duration-150 ease-out hover:bg-canvas active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
             {pending ? "Writing…" : state.text ? "Refresh" : "Write brief"}
           </button>
@@ -69,11 +68,11 @@ export function AiBrief({ jobId }: { jobId: number }) {
       </div>
       <div aria-live="polite" className="mt-4 text-sm leading-relaxed">
         {state.text ? (
-          <p key={state.text} className="rise font-medium text-white/90">{state.text}</p>
+          <p key={state.text} className="enter text-ink">{state.text}</p>
         ) : state.error ? (
           <p role="alert" className="font-semibold text-red-300">{state.error}</p>
         ) : (
-          <p className="text-white/55">
+          <p className="text-muted">
             Summarises the notes and status history into what the next tech needs to know.
           </p>
         )}
@@ -87,8 +86,8 @@ export function StatusForm({ jobId, current }: { jobId: number; current: Status 
   return (
     <form action={action}>
       <fieldset disabled={pending}>
-        <legend className="text-[11px] font-bold tracking-wider text-white/80 uppercase">Status</legend>
-        <div className="mt-2 flex flex-wrap gap-1.5">
+        <legend className="sr-only">Status</legend>
+        <div className="inline-flex max-w-full flex-wrap gap-0.5 rounded-lg bg-white p-1 ring-1 ring-line">
           {STATUSES.map((s) => {
             const active = s === current;
             return (
@@ -97,16 +96,17 @@ export function StatusForm({ jobId, current }: { jobId: number; current: Status 
                 name="status"
                 value={s}
                 aria-pressed={active}
-                className={`h-9 rounded-lg px-3 text-xs font-bold tracking-wide whitespace-nowrap uppercase transition-[background-color,color,transform] duration-150 ease-out active:scale-[0.96] disabled:cursor-wait focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${
-                  active ? "bg-white text-brand-deep shadow-sm" : "bg-white/12 text-white hover:bg-white/22"
+                className={`inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-sm font-medium whitespace-nowrap transition-[background-color,color,transform] duration-150 ease-out active:scale-[0.96] disabled:cursor-wait focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
+                  active ? "bg-ink text-white" : "text-ink/70 hover:bg-canvas hover:text-ink"
                 }`}
               >
+                <span aria-hidden className={`size-1.5 rounded-full ${STATUS_STYLE[s].dot}`} />
                 {s}
               </button>
             );
           })}
         </div>
-        <p role="status" className="mt-2 h-4 text-xs font-semibold text-white/85">{pending ? "Updating…" : state.error}</p>
+        <p role="status" className="mt-1.5 h-4 text-xs text-muted">{pending ? "Updating…" : state.error}</p>
       </fieldset>
     </form>
   );

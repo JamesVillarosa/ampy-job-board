@@ -1,106 +1,53 @@
 @import "tailwindcss";
 
 @theme inline {
-  --font-sans: var(--font-brand), ui-sans-serif, system-ui, sans-serif;
-  --color-brand: #ff5e1e;
-  --color-brand-deep: #e04a0e;
+  --font-sans: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
+  /* Job numbers and money only: they read like a run sheet and line up in columns. */
+  --font-mono: var(--font-figures), ui-monospace, monospace;
+  --color-brand: #f0561a;
+  --color-brand-deep: #d2470f;
   --color-brand-soft: #fff1ea;
-  --color-ink: #1a130e;
-  --color-paper: #faf7f4;
-  --color-line: #ece4dc;
-  --color-muted: #7d7067;
+  --color-ink: #1c1917;
+  --color-canvas: #f5f5f4;
+  --color-line: #e7e5e4;
+  --color-muted: #6b625c;
   --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 html {
-  scroll-behavior: smooth;
-  scroll-padding-top: 6rem; /* keep focused rows clear of the sticky header */
+  scroll-padding-top: 5rem; /* keep focused rows clear of the sticky header */
 }
 
 body {
-  @apply bg-paper text-ink antialiased;
+  @apply bg-canvas text-ink antialiased;
   overflow-x: clip;
 }
 
-/* Page width container; full-bleed bands sit outside it. */
 @utility shell {
-  @apply mx-auto w-full max-w-7xl px-4 sm:px-6;
+  @apply mx-auto w-full max-w-6xl px-4 sm:px-6;
 }
 
 .tabular {
   font-variant-numeric: tabular-nums;
 }
 
-/* Brand panel: solid Ampy orange with a soft top-left light and fine grain so it isn't flat. */
-.brand-panel {
-  background:
-    radial-gradient(120% 90% at 0% 0%, rgb(255 255 255 / 0.16), transparent 55%),
-    radial-gradient(80% 80% at 100% 100%, rgb(160 40 0 / 0.22), transparent 60%),
-    var(--color-brand);
-  position: relative;
-  isolation: isolate;
+/* New chat bubbles and notes fade in; state change, not decoration. */
+@keyframes enter {
+  from { opacity: 0; transform: translateY(4px); }
 }
-.brand-panel::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  z-index: -1;
-  opacity: 0.18;
-  mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-}
-
-/* Motion: one-off entrances only, never on repeated actions. */
-@keyframes rise {
-  from { opacity: 0; transform: translateY(8px); }
-}
-@keyframes grow {
-  from { transform: scaleX(0); }
-}
-.rise {
-  animation: rise 420ms var(--ease-out-strong) both;
-  animation-delay: calc(min(var(--i, 0), 12) * 28ms);
-}
-.grow {
-  transform-origin: left;
-  animation: grow 700ms var(--ease-out-strong) both;
-  animation-delay: calc(120ms + var(--i, 0) * 70ms);
-}
-
-/* Run-sheet ticker: two identical lists, slide one list-width, loop. */
-@keyframes ticker {
-  to { transform: translateX(-50%); }
-}
-.ticker-track {
-  animation: ticker 60s linear infinite;
-}
-.ticker:hover .ticker-track,
-.ticker:focus-within .ticker-track {
-  animation-play-state: paused;
-}
-
-/* Sections rise as they scroll in; browsers without scroll timelines just show them. */
-@supports (animation-timeline: view()) {
-  .reveal {
-    animation: rise linear both;
-    animation-timeline: view();
-    animation-range: entry 0% entry 30%;
-  }
+.enter {
+  animation: enter 200ms var(--ease-out-strong);
 }
 
 /* Chat panel grows out of its launcher button. */
 @keyframes pop {
-  from { opacity: 0; transform: translateY(8px) scale(0.96); }
+  from { opacity: 0; transform: translateY(6px) scale(0.97); }
 }
 .ask-panel:not([hidden]) {
   transform-origin: bottom right;
-  animation: pop 200ms var(--ease-out-strong);
+  animation: pop 180ms var(--ease-out-strong);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .rise, .grow, .reveal, .ask-panel:not([hidden]) { animation: none; }
-  .ticker { overflow-x: auto; }
-  .ticker-track { animation: none; }
+  .enter, .ask-panel:not([hidden]) { animation: none; }
 }

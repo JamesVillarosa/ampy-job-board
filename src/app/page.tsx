@@ -1,56 +1,31 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { getStats, isSort, isStatus, listJobs, overdueJobs, STATUSES, upcomingJobs, type Job, type Status } from "@/lib/db";
-import { STATUS_STYLE } from "@/lib/status";
+import { getStats, isSort, isStatus, listJobs, overdueJobs, STATUSES, type Status } from "@/lib/db";
 import { date, money } from "@/lib/format";
-import { Eyebrow, StatusBadge } from "./components";
+import { STATUS_STYLE } from "@/lib/status";
+import { StatusBadge } from "./components";
 import { Filters } from "./filters";
 
 const OPEN: Status[] = ["Scheduled", "In Progress", "On Hold"];
 const today = new Intl.DateTimeFormat("en-AU", { weekday: "long", day: "numeric", month: "long", timeZone: "Australia/Melbourne" });
-const hour = new Intl.DateTimeFormat("en-AU", { hour: "numeric", hourCycle: "h23", timeZone: "Australia/Melbourne" });
-const greeting = () => {
-  const h = Number(hour.format(new Date()));
-  return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
-};
 
 export default function Home({ searchParams }: PageProps<"/">) {
   return (
-    <Suspense fallback={<BoardSkeleton />}>
-      <Board searchParams={searchParams} />
-    </Suspense>
+    <div className="shell py-6 sm:py-8">
+      <Suspense fallback={<BoardSkeleton />}>
+        <Board searchParams={searchParams} />
+      </Suspense>
+    </div>
   );
 }
 
 function BoardSkeleton() {
   return (
-    <div aria-busy className="shell space-y-10 py-10">
-      <div className="brand-panel h-[360px] animate-pulse rounded-[28px]" />
-      <div className="h-11 w-2/3 animate-pulse rounded-xl bg-line" />
-      <div className="h-[480px] animate-pulse rounded-3xl bg-line/70" />
+    <div aria-busy className="space-y-5">
+      <div className="h-14 w-64 animate-pulse rounded-lg bg-line" />
+      <div className="h-24 animate-pulse rounded-xl bg-line/70" />
+      <div className="h-[480px] animate-pulse rounded-xl bg-line/70" />
     </div>
-  );
-}
-
-// Endless strip of the next bookings, like the services ticker on ampy.com.au.
-function RunSheet({ jobs }: { jobs: Job[] }) {
-  const items = jobs.map((j) => (
-    <li key={j.id} className="flex shrink-0 items-center gap-3 pr-8">
-      <span aria-hidden className="size-1.5 rotate-45 bg-brand" />
-      <span className="text-brand">{date(j.scheduled_for)}</span>
-      <Link href={`/jobs/${j.id}`} className="text-white transition-colors hover:text-brand focus-visible:text-brand focus-visible:outline-none">
-        {j.customer}
-      </Link>
-      <span className="text-white/55">{j.job_type} · {j.suburb}</span>
-    </li>
-  ));
-  return (
-    <section aria-label="Upcoming bookings" className="reveal ticker overflow-hidden bg-ink py-4 text-[13px] font-bold tracking-wide uppercase">
-      <div className="ticker-track flex w-max">
-        <ul className="flex">{items}</ul>
-        <ul aria-hidden inert className="flex">{items}</ul>
-      </div>
-    </section>
   );
 }
 
@@ -60,10 +35,9 @@ async function Board({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
   const q = typeof sp.q === "string" ? sp.q.trim().slice(0, 100) : "";
   const sort = isSort(sp.sort) ? sp.sort : "newest";
 
-  const [jobs, stats, upcoming, overdue] = await Promise.all([listJobs({ status, q, sort }), getStats(), upcomingJobs(), overdueJobs()]);
+  const [jobs, stats, overdue] = await Promise.all([listJobs({ status, q, sort }), getStats(), overdueJobs()]);
   const open = OPEN.reduce((a, s) => ({ count: a.count + stats[s].count, total: a.total + stats[s].total }), { count: 0, total: 0 });
   const all = STATUSES.reduce((n, s) => n + stats[s].count, 0);
-  const grand = STATUSES.reduce((n, s) => n + stats[s].total, 0) || 1;
 
   const href = (s?: Status) => {
     const p = new URLSearchParams();
@@ -73,203 +47,160 @@ async function Board({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
     return p.size ? `/?${p}` : "/";
   };
 
+  const summary: [string, number, number][] = [
+    ["Open pipeline", open.total, open.count],
+    ["In progress", stats["In Progress"].total, stats["In Progress"].count],
+    ["On hold", stats["On Hold"].total, stats["On Hold"].count],
+    ["Completed", stats.Completed.total, stats.Completed.count],
+  ];
+
   return (
-    <div className="space-y-10 pb-6 sm:space-y-14 sm:pb-10">
-      {/* Dark band with today's headline numbers. */}
-      <section aria-labelledby="welcome" className="relative isolate overflow-hidden bg-ink text-white">
-        <div aria-hidden className="absolute inset-0 -z-10 bg-[radial-gradient(60%_80%_at_50%_0%,rgb(255_98_31/0.22),transparent_70%)]" />
-        <div className="mx-auto max-w-7xl px-4 pt-14 pb-36 text-center sm:px-6 sm:pt-24 sm:pb-44">
-          <Eyebrow className="rise text-white/85">
-            {greeting()}, team · {today.format(new Date())}
-          </Eyebrow>
-          <h1 id="welcome" style={{ ["--i" as string]: 1 }} className="rise mx-auto mt-4 max-w-3xl text-[clamp(2.25rem,7vw,5rem)] leading-[0.92] font-black tracking-tight uppercase text-balance">
-            Today on the tools
-          </h1>
-          <ul style={{ ["--i" as string]: 2 }} className="rise mt-7 flex flex-wrap justify-center gap-2 text-[13px] font-bold">
-            {(
-              [
-                ["In Progress", "on the tools"],
-                ["Scheduled", "booked in"],
-                ["On Hold", "waiting"],
-              ] as const
-            ).map(([s, label]) => (
-              <li key={s}>
+    <div className="space-y-5">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Jobs</h1>
+          <p className="mt-1 text-sm text-muted">{today.format(new Date())}</p>
+        </div>
+        <Suspense>
+          <Filters />
+        </Suspense>
+      </div>
+
+      <div className="overflow-hidden rounded-xl bg-white ring-1 ring-line">
+      <dl className="grid grid-cols-2 sm:grid-cols-4">
+        {summary.map(([label, total, count], i) => (
+          <div key={label} className={`px-4 py-3.5 sm:px-5 ${i % 2 ? "border-l border-line" : ""} ${i > 1 ? "border-t border-line sm:border-t-0" : ""} ${i === 2 ? "sm:border-l" : ""}`}>
+            <dt className="text-xs font-medium text-muted">{label}</dt>
+            <dd className="mt-1 font-mono text-lg font-semibold tracking-tight">{money(total)}</dd>
+            <dd className="tabular text-xs text-muted">{count} {count === 1 ? "job" : "jobs"}</dd>
+          </div>
+        ))}
+      </dl>
+      {/* Where the money sits, by status. */}
+      <div className="flex h-1.5 gap-px bg-line" role="img" aria-label={STATUSES.map((s) => `${s} ${money(stats[s].total)}`).join(", ")}>
+        {STATUSES.map((s) => (
+          <span key={s} className={STATUS_STYLE[s].dot} style={{ flexGrow: stats[s].total }} />
+        ))}
+      </div>
+      </div>
+
+      {overdue.length > 0 && (
+        <div role="status" className="flex flex-col gap-3 rounded-xl bg-white px-4 py-3 ring-1 ring-red-200 sm:flex-row sm:items-center sm:justify-between">
+          <p className="flex gap-2.5 text-sm text-ink/80">
+            <span aria-hidden className="mt-1.5 size-2 shrink-0 rounded-full bg-red-600 ring-4 ring-red-100" />
+            <span>
+              <strong className="font-semibold text-ink">{overdue.length} {overdue.length === 1 ? "job is" : "jobs are"} past the booked date</strong> and still
+              marked Scheduled:{" "}
+              {overdue.map((j, i) => (
+                <span key={j.id}>
+                  {i > 0 && ", "}
+                  <Link href={`/jobs/${j.id}`} className="font-medium text-ink underline decoration-line underline-offset-2 hover:decoration-ink">{j.customer}</Link>
+                </span>
+              ))}
+              .
+            </span>
+          </p>
+          <Link
+            href="/?status=Scheduled&sort=oldest"
+            scroll={false}
+            className="inline-flex h-9 shrink-0 items-center justify-center rounded-lg bg-white px-3.5 text-sm font-medium text-ink ring-1 ring-line transition-[background-color,transform] duration-150 ease-out hover:bg-canvas active:scale-[0.97]"
+          >
+            Review overdue
+          </Link>
+        </div>
+      )}
+
+      <nav aria-label="Filter by status" className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-0">
+        <ul className="flex w-max gap-1.5">
+          {[undefined, ...STATUSES].map((s) => {
+            const active = s === status;
+            return (
+              <li key={s ?? "all"}>
                 <Link
                   href={href(s)}
                   scroll={false}
-                  className="flex h-10 items-center gap-2 rounded-full bg-white/10 px-4 ring-1 ring-white/25 backdrop-blur-sm transition-[background-color,transform] duration-200 ease-out hover:bg-white/20 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                  aria-current={active ? "page" : undefined}
+                  className={`flex h-9 items-center gap-2 rounded-lg px-3 text-sm font-medium whitespace-nowrap transition-[background-color,color,transform] duration-150 ease-out active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
+                    active ? "bg-ink text-white" : "text-ink/70 hover:bg-line/60 hover:text-ink"
+                  }`}
                 >
-                  <span aria-hidden className={`size-2 rounded-full ${STATUS_STYLE[s].bar}`} />
-                  <span className="tabular">{stats[s].count}</span> {label}
+                  {s ?? "All"}
+                  <span className={`tabular text-xs ${active ? "text-white/70" : "text-muted"}`}>{s ? stats[s].count : all}</span>
                 </Link>
               </li>
-            ))}
-          </ul>
-        </div>
-      </section>
+            );
+          })}
+        </ul>
+      </nav>
 
-      {/* Pipeline panel overlaps the photo. */}
-      <div className="shell">
-      <section aria-labelledby="pipeline" className="brand-panel relative z-10 -mt-36 rounded-[28px] text-white shadow-[0_30px_60px_-30px_rgb(120_40_0/0.6)] sm:-mt-44">
-        <div className="relative z-10 grid gap-x-14 p-6 sm:p-10 lg:grid-cols-2 lg:items-end lg:p-12">
-          <div>
-          <Eyebrow className="text-white/80">Open pipeline</Eyebrow>
-          <h2 id="pipeline" className="mt-4 text-[clamp(2.25rem,6vw,4.25rem)] leading-[0.95] font-black tracking-tight uppercase text-balance">
-            <span className="tabular">{money(open.total)}</span>
-            <span className="block text-white/85">in the pipeline</span>
-          </h2>
-          <p className="mt-5 max-w-md text-[15px] leading-relaxed font-medium text-white/90">
-            {open.count} open jobs across Bendigo and surrounds. {stats["In Progress"].count} on the tools right now,{" "}
-            {stats["On Hold"].count} waiting on the customer or parts.
+      {jobs.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-line bg-white px-6 py-14 text-center">
+          <p className="font-semibold">No jobs match</p>
+          <p className="mt-1 text-sm text-muted">
+            Nothing for {q ? `“${q}”` : "this filter"}{status ? ` in ${status}` : ""}. Check the spelling or widen the filter.
           </p>
-          </div>
-
-          <div className="mt-8 lg:mt-0">
-            <div className="flex h-3 overflow-hidden rounded-full bg-black/15" role="img" aria-label="Job value split by status">
-              {STATUSES.map((s, i) => (
-                <span key={s} className={`grow ${STATUS_STYLE[s].bar}`} style={{ width: `${(stats[s].total / grand) * 100}%`, ["--i" as string]: i }} />
-              ))}
-            </div>
-            <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3">
-              {STATUSES.map((s) => (
-                <div key={s}>
-                  <dt className="flex items-center gap-2 text-[11px] font-bold tracking-wider text-white/75 uppercase">
-                    <span aria-hidden className={`size-2 rounded-full ${STATUS_STYLE[s].bar}`} />
-                    {s}
-                  </dt>
-                  <dd className="tabular mt-1 text-lg font-extrabold">{money(stats[s].total)}</dd>
-                  <dd className="tabular text-xs font-medium text-white/70">{stats[s].count} {stats[s].count === 1 ? "job" : "jobs"}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
+          <Link href="/" className="mt-5 inline-flex h-9 items-center rounded-lg bg-brand px-4 text-sm font-medium text-white transition-[background-color,transform] duration-150 ease-out hover:bg-brand-deep active:scale-[0.97]">
+            Clear filters
+          </Link>
         </div>
-      </section>
-      </div>
-
-      {upcoming.length > 0 && <RunSheet jobs={upcoming} />}
-
-      <section aria-labelledby="jobs-heading" className="reveal shell space-y-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <Eyebrow className="text-brand">Job board</Eyebrow>
-            <h2 id="jobs-heading" className="mt-1 text-3xl font-black tracking-tight uppercase">
-              All jobs <span className="tabular text-muted/60">{all}</span>
-            </h2>
-          </div>
-          <Suspense>
-            <Filters />
-          </Suspense>
-        </div>
-
-        {overdue.length > 0 && (
-          <div role="status" className="flex flex-col gap-3 rounded-2xl bg-white p-4 ring-1 ring-red-200 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-            <p className="flex items-start gap-3 text-sm font-medium text-ink/80">
-              <span aria-hidden className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-red-600 text-xs font-black text-white">!</span>
-              <span>
-                <strong className="font-extrabold text-ink">{overdue.length} {overdue.length === 1 ? "job is" : "jobs are"} past the booked date</strong> and still
-                marked Scheduled: {overdue.map((j) => j.customer).join(", ")}.
-              </span>
-            </p>
-            <Link
-              href="/?status=Scheduled&sort=oldest"
-              scroll={false}
-              className="inline-flex h-10 shrink-0 items-center justify-center rounded-lg bg-ink px-4 text-[13px] font-bold tracking-wide text-white uppercase transition-[background-color,transform] duration-150 ease-out hover:bg-ink/85 active:scale-[0.97]"
-            >
-              Review overdue
-            </Link>
-          </div>
-        )}
-
-        <nav aria-label="Filter by status" className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-0">
-          <ul className="flex w-max gap-2">
-            {[undefined, ...STATUSES].map((s) => {
-              const active = s === status;
-              return (
-                <li key={s ?? "all"}>
-                  <Link
-                    href={href(s)}
-                    scroll={false}
-                    aria-current={active ? "page" : undefined}
-                    className={`flex h-10 items-center gap-2 rounded-full px-4 text-[13px] font-bold whitespace-nowrap ring-1 transition-[background-color,color,box-shadow,transform] duration-200 ease-out active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
-                      active ? "bg-ink text-white ring-ink" : "bg-white text-ink/75 ring-line hover:text-ink hover:ring-ink/25"
-                    }`}
-                  >
-                    {s ?? "All"}
-                    <span className={`tabular rounded-full px-1.5 text-[11px] ${active ? "bg-white/15" : "bg-paper text-muted"}`}>
-                      {s ? stats[s].count : all}
+      ) : (
+        <div className="overflow-hidden rounded-xl bg-white ring-1 ring-line">
+          <table className="w-full text-sm">
+            <caption className="sr-only">{jobs.length} jobs</caption>
+            <thead className="bg-canvas text-left text-xs font-medium text-muted">
+              <tr className="border-b border-line">
+                <th scope="col" className="hidden py-2.5 pl-5 font-medium md:table-cell">Job</th>
+                <th scope="col" className="py-2.5 pl-4 font-medium md:pl-3">Customer</th>
+                <th scope="col" className="hidden px-3 py-2.5 font-medium lg:table-cell">Job type</th>
+                <th scope="col" className="hidden px-3 py-2.5 font-medium sm:table-cell">Status</th>
+                <th scope="col" className="hidden px-3 py-2.5 font-medium xl:table-cell">Tech</th>
+                <th scope="col" className="hidden px-3 py-2.5 font-medium sm:table-cell">Booked</th>
+                <th scope="col" className="py-2.5 pr-4 pl-3 text-right font-medium sm:pr-5">Value</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-line">
+              {jobs.map((j) => (
+                <tr
+                  key={j.id}
+                  className="relative transition-colors duration-150 hover:bg-canvas has-[a:focus-visible]:bg-brand-soft has-[a:focus-visible]:outline-2 has-[a:focus-visible]:-outline-offset-2 has-[a:focus-visible]:outline-brand"
+                >
+                  <td className="hidden py-3 pl-5 font-mono text-xs text-muted md:table-cell">{j.job_number}</td>
+                  <td className="py-3 pl-4 md:pl-3">
+                    <Link href={`/jobs/${j.id}`} className="font-medium text-ink outline-none after:absolute after:inset-0">
+                      {j.customer}
+                    </Link>
+                    <div className="mt-0.5 text-xs text-muted">
+                      {j.suburb}
+                      <span className="lg:hidden"> · {j.job_type}</span>
+                    </div>
+                    <div className="mt-2 flex gap-1.5 sm:hidden">
+                      <StatusBadge status={j.status} />
+                      {j.overdue && <Overdue />}
+                    </div>
+                  </td>
+                  <td className="hidden px-3 py-3 text-ink/80 lg:table-cell">{j.job_type}</td>
+                  <td className="hidden px-3 py-3 sm:table-cell"><StatusBadge status={j.status} /></td>
+                  <td className="hidden px-3 py-3 xl:table-cell">
+                    <span className="flex items-center gap-2 whitespace-nowrap text-ink/80">
+                      <span aria-hidden className="grid size-6 place-items-center rounded-full bg-canvas text-[11px] font-semibold ring-1 ring-line">{j.technician?.[0] ?? "–"}</span>
+                      {j.technician ?? "Unassigned"}
                     </span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
-
-        {jobs.length === 0 ? (
-          <div className="rounded-3xl border-2 border-dashed border-line bg-white px-6 py-16 text-center">
-            <p className="text-lg font-extrabold uppercase">No jobs match</p>
-            <p className="mt-1 text-sm text-muted">
-              Nothing for {q ? `“${q}”` : "this filter"}{status ? ` in ${status}` : ""}. Check the spelling or widen the filter.
-            </p>
-            <Link href="/" className="mt-5 inline-flex h-10 items-center rounded-lg bg-brand px-5 text-[13px] font-bold tracking-wide text-white uppercase transition-[background-color,transform] duration-150 ease-out hover:bg-brand-deep active:scale-[0.97]">
-              Clear filters
-            </Link>
-          </div>
-        ) : (
-          <div className="overflow-hidden rounded-3xl bg-white shadow-[0_1px_2px_rgb(60_30_10/0.06),0_8px_32px_-12px_rgb(60_30_10/0.12)] ring-1 ring-line">
-            <table className="w-full text-sm">
-              <caption className="sr-only">{jobs.length} jobs</caption>
-              <thead className="text-left text-[11px] font-bold tracking-wider text-muted uppercase">
-                <tr className="border-b border-line">
-                  <th scope="col" className="hidden py-4 pl-6 md:table-cell">Job</th>
-                  <th scope="col" className="py-4 pl-5 md:pl-4">Customer</th>
-                  <th scope="col" className="hidden px-4 py-4 lg:table-cell">Job type</th>
-                  <th scope="col" className="hidden px-4 py-4 sm:table-cell">Status</th>
-                  <th scope="col" className="hidden px-4 py-4 sm:table-cell">Booked</th>
-                  <th scope="col" className="py-4 pr-5 pl-4 text-right sm:pr-6">Value</th>
+                  </td>
+                  <td className="tabular hidden px-3 py-3 whitespace-nowrap text-ink/80 sm:table-cell">
+                    {date(j.scheduled_for)}
+                    {j.overdue && <span className="ml-2"><Overdue /></span>}
+                  </td>
+                  <td className="py-3 pr-4 pl-3 text-right font-mono font-medium whitespace-nowrap sm:pr-5">{money(j.value)}</td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-line/70">
-                {jobs.map((j, i) => (
-                  <tr
-                    key={j.id}
-                    style={{ ["--i" as string]: i }}
-                    className="rise group relative transition-colors duration-150 hover:bg-brand-soft/60 has-[a:focus-visible]:bg-brand-soft has-[a:focus-visible]:outline-2 has-[a:focus-visible]:-outline-offset-2 has-[a:focus-visible]:outline-brand"
-                  >
-                    <td className="tabular hidden py-4 pl-6 text-xs font-semibold text-muted md:table-cell">{j.job_number}</td>
-                    <td className="py-4 pl-5 md:pl-4">
-                      <Link href={`/jobs/${j.id}`} className="font-bold text-ink outline-none after:absolute after:inset-0">
-                        {j.customer}
-                      </Link>
-                      <div className="mt-0.5 text-xs font-medium text-muted">
-                        {j.suburb}
-                        <span className="lg:hidden"> · {j.job_type}</span>
-                      </div>
-                      <div className="mt-2 flex gap-1.5 sm:hidden">
-                        <StatusBadge status={j.status} />
-                        {j.overdue && <span className="rounded-md bg-red-50 px-2 py-1 text-[11px] font-bold tracking-wide text-red-700 uppercase ring-1 ring-red-200 ring-inset">Overdue</span>}
-                      </div>
-                    </td>
-                    <td className="hidden px-4 py-4 font-medium text-ink/80 lg:table-cell">{j.job_type}</td>
-                    <td className="hidden px-4 py-4 sm:table-cell"><StatusBadge status={j.status} /></td>
-                    <td className="tabular hidden px-4 py-4 font-medium whitespace-nowrap text-ink/70 sm:table-cell">
-                      {date(j.scheduled_for)}
-                      {j.overdue && <span className="ml-2 rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-red-700 uppercase ring-1 ring-red-200 ring-inset">Overdue</span>}
-                    </td>
-                    <td className="tabular py-4 pr-5 pl-4 text-right text-[15px] font-extrabold whitespace-nowrap sm:pr-6">
-                      <span className="inline-flex items-center gap-2">
-                        {money(j.value)}
-                        <span aria-hidden className="hidden text-brand opacity-0 transition-[opacity,transform] duration-200 ease-out group-hover:translate-x-0.5 group-hover:opacity-100 sm:inline">→</span>
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
+}
+
+function Overdue() {
+  return <span className="rounded-md bg-red-50 px-1.5 py-0.5 text-xs font-medium text-red-700 ring-1 ring-red-200 ring-inset">Overdue</span>;
 }
