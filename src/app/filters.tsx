@@ -4,7 +4,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 
 const field =
-  "h-9 rounded-lg border-0 bg-white text-sm ring-1 ring-line outline-none transition-[box-shadow] duration-150 focus:ring-2 focus:ring-brand";
+  "h-11 rounded-xl border-0 bg-white text-sm font-medium shadow-[0_1px_2px_rgb(60_30_10/0.06)] ring-1 ring-line outline-none transition-[box-shadow] duration-150 focus:ring-2 focus:ring-brand";
 
 // Search + sort live in the URL so a filtered view can be shared or bookmarked.
 export function Filters() {
@@ -68,23 +68,114 @@ export function Filters() {
           }}
           className={`${field} w-full pr-10 pl-10 placeholder:text-muted`}
         />
-        <kbd aria-hidden className={`pointer-events-none font-mono absolute top-1/2 right-3 hidden -translate-y-1/2 rounded border border-line px-1.5 text-[11px] leading-5 text-muted sm:block ${pending || q ? "opacity-0" : ""}`}>/</kbd>
+        <kbd aria-hidden className={`pointer-events-none absolute top-1/2 right-3 hidden -translate-y-1/2 rounded border border-line px-1.5 text-[11px] leading-5 text-muted sm:block ${pending || q ? "opacity-0" : ""}`}>/</kbd>
         <span aria-hidden className={`absolute top-1/2 right-3.5 size-4 -translate-y-1/2 rounded-full border-2 border-line border-t-brand transition-opacity duration-150 ${pending ? "animate-spin opacity-100" : "opacity-0"}`} />
       </label>
-      <label>
-        <span className="sr-only">Sort jobs</span>
-        <select
-          name="sort"
-          value={params.get("sort") ?? "newest"}
-          onChange={(e) => push("sort", e.target.value === "newest" ? "" : e.target.value)}
-          className={`${field} px-2.5`}
-        >
-          <option value="newest">Latest booked</option>
-          <option value="oldest">Earliest booked</option>
-          <option value="value">Highest value</option>
-          <option value="customer">Customer A–Z</option>
-        </select>
-      </label>
+      <SortMenu value={params.get("sort") ?? "newest"} onChange={(v) => push("sort", v === "newest" ? "" : v)} />
     </form>
+  );
+}
+
+const SORTS = [
+  ["newest", "Latest booked"],
+  ["oldest", "Earliest booked"],
+  ["value", "Highest value"],
+  ["customer", "Customer A–Z"],
+] as const;
+
+// Listbox menu in place of a native <select>: same keyboard model (arrows, Enter, Escape), styled to match.
+function SortMenu({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(0);
+  const root = useRef<HTMLDivElement>(null);
+  const button = useRef<HTMLButtonElement>(null);
+  const list = useRef<HTMLUListElement>(null);
+  const current = SORTS.find(([v]) => v === value) ?? SORTS[0];
+
+  useEffect(() => {
+    if (!open) return;
+    list.current?.focus();
+    const close = (e: PointerEvent) => !root.current?.contains(e.target as Node) && setOpen(false);
+    document.addEventListener("pointerdown", close);
+    return () => document.removeEventListener("pointerdown", close);
+  }, [open]);
+
+  function show() {
+    setActive(SORTS.indexOf(current));
+    setOpen(true);
+  }
+  function choose(i: number) {
+    setOpen(false);
+    button.current?.focus();
+    if (SORTS[i][0] !== value) onChange(SORTS[i][0]);
+  }
+
+  return (
+    <div ref={root} className="relative">
+      <button
+        ref={button}
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label={`Sort jobs: ${current[1]}`}
+        onClick={() => (open ? setOpen(false) : show())}
+        onKeyDown={(e) => {
+          if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+            e.preventDefault();
+            show();
+          }
+        }}
+        className={`${field} flex items-center gap-2 px-3.5 whitespace-nowrap transition-[box-shadow,transform] active:scale-[0.97]`}
+      >
+        <svg aria-hidden viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="size-4 text-muted">
+          <path d="M4 6h12M6 10h8M8 14h4" />
+        </svg>
+        <span className="hidden sm:inline">{current[1]}</span>
+        <svg aria-hidden viewBox="0 0 20 20" fill="currentColor" className={`size-4 text-muted transition-transform duration-200 ease-out ${open ? "rotate-180" : ""}`}>
+          <path d="M5.3 7.3a1 1 0 0 1 1.4 0L10 10.6l3.3-3.3a1 1 0 1 1 1.4 1.4l-4 4a1 1 0 0 1-1.4 0l-4-4a1 1 0 0 1 0-1.4Z" />
+        </svg>
+      </button>
+      {open && (
+        <ul
+          ref={list}
+          role="listbox"
+          tabIndex={-1}
+          aria-label="Sort jobs"
+          aria-activedescendant={`sort-${SORTS[active][0]}`}
+          onKeyDown={(e) => {
+            if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+              e.preventDefault();
+              setActive((i) => (i + (e.key === "ArrowDown" ? 1 : SORTS.length - 1)) % SORTS.length);
+            } else if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              choose(active);
+            } else if (e.key === "Escape" || e.key === "Tab") {
+              setOpen(false);
+              button.current?.focus();
+            }
+          }}
+          className="pop absolute top-full right-0 z-30 mt-2 w-52 origin-top-right rounded-xl bg-white p-1.5 shadow-[0_16px_40px_-12px_rgb(40_20_5/0.3)] ring-1 ring-line outline-none"
+        >
+          {SORTS.map(([v, label], i) => (
+            <li
+              key={v}
+              id={`sort-${v}`}
+              role="option"
+              aria-selected={v === current[0]}
+              onPointerEnter={() => setActive(i)}
+              onClick={() => choose(i)}
+              className={`flex h-10 cursor-pointer items-center justify-between rounded-lg px-3 text-sm font-medium ${i === active ? "bg-brand-soft text-brand-deep" : "text-ink/80"}`}
+            >
+              {label}
+              {v === current[0] && (
+                <svg aria-hidden viewBox="0 0 20 20" fill="currentColor" className="size-4 text-brand">
+                  <path d="M16.7 5.3a1 1 0 0 1 0 1.4l-8 8a1 1 0 0 1-1.4 0l-4-4a1 1 0 1 1 1.4-1.4L8 12.6l7.3-7.3a1 1 0 0 1 1.4 0Z" />
+                </svg>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }

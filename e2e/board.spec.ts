@@ -5,7 +5,7 @@ const rows = (page: import("@playwright/test").Page) => page.locator("tbody tr")
 test("lists 20 seeded jobs with stats", async ({ page }) => {
   await page.goto("/");
   await expect(rows(page)).toHaveCount(20);
-  await expect(page.getByText("Open pipeline")).toBeVisible();
+  await expect(page.getByRole("heading", { name: /day at a glance/i })).toBeVisible();
 });
 
 test("filters by status and keeps it in the URL", async ({ page }) => {
@@ -143,4 +143,19 @@ test("slash focuses search and chat links job refs to the job page", async ({ pa
   await panel.getByRole("button", { name: "Biggest open job?" }).click();
   await panel.getByRole("link", { name: "AMP-1042" }).click();
   await expect(page).toHaveURL(/\/jobs\/2$/);
+});
+
+test("sort menu works by mouse and keyboard", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: /Sort jobs/ }).click();
+  await page.getByRole("option", { name: "Highest value" }).click();
+  await expect(page).toHaveURL(/sort=value/);
+  const menu = page.getByRole("button", { name: /Sort jobs: Highest value/ });
+  await menu.focus();
+  await page.keyboard.press("ArrowDown");
+  await expect(page.getByRole("listbox")).toBeVisible();
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/sort=customer/);
+  await expect(page.getByRole("listbox")).toBeHidden();
 });
