@@ -1,8 +1,8 @@
 # Ampy Job Board
 
-A small internal job board for Ampy Electrical: every job in one list, filter and search it, open a job to change its status or leave a note. Next.js 16 + Postgres, deployed on Railway.
+A small internal job board for Ampy Electrical: every job in one list, filter and search it, open a job to change its status or leave a note. Next.js 16 (TypeScript) + Postgres, deployed on Vercel with Neon Postgres.
 
-**Live:** _add Railway URL_ · **Health:** `/api/health`
+**Live:** https://ampy-job-board-psi.vercel.app · **Health:** `/api/health`
 
 ## What it does
 
@@ -14,16 +14,16 @@ A small internal job board for Ampy Electrical: every job in one list, filter an
 - **Job detail page** with an **add note** box that saves to Postgres, plus a **status change** control. Notes and status changes form one **activity timeline**, so you can see who changed what and when.
 - **Mobile friendly**: techs can check a job from their phone.
 - **Overdue alert**: jobs still marked Scheduled after their booked day are flagged on the board, with a one-click filter to review them.
-- **AI handover brief** (Claude): one button on a job turns its notes and status history into what the next tech needs to know.
-- **Ask the board** (Claude): a chat panel on every page answers questions like `What's overdue?` or `Biggest open job in Marong?` from the live job list.
+- **Handover brief**: one button on a job turns its record and latest note into what the next tech needs to know.
+- **Ask the board**: a chat panel on every page answers questions like `What's overdue?`, `Who's on hold?` or `What's on in Strathdale?` from the live job list. It's a rule-based demo (keyword matching in `src/lib/assistant.ts`), so it needs no API key; the same endpoint could call an LLM later.
 - **Morning digest**: `GET /api/digest` returns open pipeline, overdue and next-up jobs plus a ready-to-send `text` line. Point a cron, n8n or Zapier at it and post to Slack or SMS.
 
 ## Reliability
 
-- `/api/health` checks the database and returns `503` if it's unreachable. Railway uses it as the deploy healthcheck, so a broken build never replaces a working one.
+- `/api/health` checks the database and returns `503` if it's unreachable. Point an uptime monitor at it.
 - Inputs are validated on the server (note length, known statuses, numeric ids). All SQL is parameterised.
 - Status changes run in a transaction with a row lock, so two people changing the same job can't corrupt the log.
-- **28 Playwright end-to-end tests** (desktop + mobile) cover listing, filtering, search, sort, notes persisting after reload, validation, status changes, overdue flags, the digest, the AI-off states, 404s and health.
+- **30 Playwright end-to-end tests** (desktop + mobile) cover listing, filtering, search, sort, notes persisting after reload, validation, status changes, overdue flags, the digest, the chat and brief, 404s and health.
 - **GitHub Actions CI** runs lint, typecheck, migrations and the full e2e suite against a real Postgres on every push.
 
 ## Run locally
@@ -39,14 +39,13 @@ npm run test:e2e             # builds and runs the Playwright suite
 
 `npm run db:reset` drops and reseeds.
 
-## Deploy (Railway)
+## Deploy (Vercel)
 
-1. New project → Deploy from GitHub repo → `ampy-job-board`.
-2. Add a Postgres database to the project.
-3. On the app service set `DATABASE_URL = ${{Postgres.DATABASE_URL}}`. Optional: `ANTHROPIC_API_KEY` turns on the AI brief and chat (`ANTHROPIC_MODEL` overrides the default `claude-haiku-5-5`).
-4. Settings → Networking → Generate domain.
+1. Import the GitHub repo in Vercel.
+2. Storage → add **Neon** Postgres and connect it to the project (sets `DATABASE_URL`).
+3. Deploy. `vercel.json` pins functions to Sydney (`syd1`), next to the database. The `vercel-build` script runs the migration before `next build`, so schema and seed data are applied on every deploy (idempotent).
 
-`npm start` runs the migration before booting, so schema and seed data are applied on every deploy (idempotent). `railway.json` sets the healthcheck and restart policy.
+Railway also works: `npm start` migrates before booting and `railway.json` sets the healthcheck.
 
 ## Structure
 
@@ -60,7 +59,7 @@ src/app/jobs/[id]/         detail page, server actions for notes + status
 src/app/api/health/        healthcheck
 src/app/api/digest/        morning digest JSON for automations
 src/app/api/ask/           ask-the-board endpoint
-src/lib/ai.ts              Claude Messages API call (plain fetch)
+src/lib/assistant.ts       rule-based chat answers + handover brief
 e2e/                       Playwright tests
 ```
 

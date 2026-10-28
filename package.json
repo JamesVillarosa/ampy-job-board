@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "vercel-build": "node scripts/migrate.mjs && next build",
     "start": "node scripts/migrate.mjs && next start",
     "db:migrate": "node --env-file-if-exists=.env.local scripts/migrate.mjs",
     "db:reset": "node --env-file-if-exists=.env.local scripts/migrate.mjs --reset",
