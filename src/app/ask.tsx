@@ -60,7 +60,7 @@ export function AskBoard() {
       >
         <div className="border-b border-line px-4 py-3">
           <p className="text-sm font-semibold">Ask the board</p>
-          <p className="mt-0.5 text-sm font-semibold">Questions answered from live jobs.</p>
+          <p className="text-xs text-muted">Answers come from the live job list.</p>
         </div>
 
         <ol ref={log} className="flex-1 space-y-4 overflow-y-auto px-5 py-4 text-sm" aria-live="polite">
