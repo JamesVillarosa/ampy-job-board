@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
 import { getStats, isSort, isStatus, listJobs, overdueJobs, STATUSES, upcomingJobs, type Job, type Status } from "@/lib/db";
@@ -76,10 +75,9 @@ async function Board({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
 
   return (
     <div className="space-y-10 pb-6 sm:space-y-14 sm:pb-10">
-      {/* Full-bleed team photo, like ampy.com.au, with today's headline numbers. */}
+      {/* Dark band with today's headline numbers. */}
       <section aria-labelledby="welcome" className="relative isolate overflow-hidden bg-ink text-white">
-        <Image src="/hero.jpg" alt="" fill priority sizes="100vw" className="hero-zoom -z-10 object-cover object-[50%_30%] opacity-75" />
-        <div aria-hidden className="absolute inset-0 -z-10 bg-[linear-gradient(to_top,var(--color-ink)_0%,rgb(26_19_14/0.55)_45%,rgb(26_19_14/0.25)_100%)]" />
+        <div aria-hidden className="absolute inset-0 -z-10 bg-[radial-gradient(60%_80%_at_50%_0%,rgb(255_98_31/0.22),transparent_70%)]" />
         <div className="mx-auto max-w-7xl px-4 pt-14 pb-36 text-center sm:px-6 sm:pt-24 sm:pb-44">
           <Eyebrow className="rise text-white/85">
             {greeting()}, team · {today.format(new Date())}
@@ -110,10 +108,11 @@ async function Board({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
         </div>
       </section>
 
-      {/* Pipeline panel overlaps the photo, van parked off its right edge. */}
+      {/* Pipeline panel overlaps the photo. */}
       <div className="shell">
       <section aria-labelledby="pipeline" className="brand-panel relative z-10 -mt-36 rounded-[28px] text-white shadow-[0_30px_60px_-30px_rgb(120_40_0/0.6)] sm:-mt-44">
-        <div className="relative z-10 p-6 sm:p-10 lg:max-w-[58%] lg:p-12">
+        <div className="relative z-10 grid gap-x-14 p-6 sm:p-10 lg:grid-cols-2 lg:items-end lg:p-12">
+          <div>
           <Eyebrow className="text-white/80">Open pipeline</Eyebrow>
           <h2 id="pipeline" className="mt-4 text-[clamp(2.25rem,6vw,4.25rem)] leading-[0.95] font-black tracking-tight uppercase text-balance">
             <span className="tabular">{money(open.total)}</span>
@@ -123,8 +122,9 @@ async function Board({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
             {open.count} open jobs across Bendigo and surrounds. {stats["In Progress"].count} on the tools right now,{" "}
             {stats["On Hold"].count} waiting on the customer or parts.
           </p>
+          </div>
 
-          <div className="mt-8 max-w-xl">
+          <div className="mt-8 lg:mt-0">
             <div className="flex h-3 overflow-hidden rounded-full bg-black/15" role="img" aria-label="Job value split by status">
               {STATUSES.map((s, i) => (
                 <span key={s} className={`grow ${STATUS_STYLE[s].bar}`} style={{ width: `${(stats[s].total / grand) * 100}%`, ["--i" as string]: i }} />
@@ -144,14 +144,6 @@ async function Board({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
             </dl>
           </div>
         </div>
-        <Image
-          src="/van.webp"
-          alt=""
-          width={956}
-          height={461}
-          priority
-          className="drive-in pointer-events-none absolute -right-6 -bottom-10 hidden w-[46%] max-w-[600px] drop-shadow-[0_24px_24px_rgb(60_20_0/0.35)] lg:block xl:-right-16"
-        />
       </section>
       </div>
 
