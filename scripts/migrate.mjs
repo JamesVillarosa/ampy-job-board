@@ -67,14 +67,27 @@ const [{ count }] = await sql`select count(*)::int from jobs`;
 if (count === 0) {
   // Today in Bendigo, not UTC, so "today" matches what the team sees.
   const today = new Date(new Date().toLocaleDateString("en-CA", { timeZone: "Australia/Melbourne" }));
-  const rows = jobs.map(([customer, suburb, job_type, status, value, technician, days], i) => ({
-    job_number: `AMP-${1041 + i}`,
-    customer, suburb, job_type, status, value, technician,
-    phone: PHONES[i % PHONES.length],
-    scheduled_for: new Date(+today + days * 86400000).toISOString().slice(0, 10),
-  }));
-  const inserted = await sql`insert into jobs ${sql(rows)} returning id, status`;
-  await sql`insert into job_events ${sql(inserted.map((j) => ({ job_id: j.id, kind: "status", body: `Job created as ${j.status}`, author: "Office" })))}`;
+  const DAY = 86400000;
+  const rows = jobs.map(([customer, suburb, job_type, status, value, technician, days], i) => {
+    const booked = +today + days * DAY;
+    return {
+      job_number: `AMP-${1041 + i}`,
+      customer, suburb, job_type, status, value, technician,
+      phone: PHONES[i % PHONES.length],
+      scheduled_for: new Date(booked).toISOString().slice(0, 10),
+      // Booked in a week ahead, or a few days ago for future work: never created after the booked day.
+      created_at: new Date(Math.min(booked - 7 * DAY, Date.now() - 3 * DAY)),
+    };
+  });
+  const inserted = await sql`insert into jobs ${sql(rows)} returning id, status, scheduled_for, created_at`;
+  // History: created as Scheduled, then moved to its current status on the booked day (never in the future).
+  const history = inserted.flatMap((j) => [
+    { job_id: j.id, kind: "status", body: "Job created as Scheduled", author: "Office", created_at: j.created_at },
+    ...(j.status === "Scheduled"
+      ? []
+      : [{ job_id: j.id, kind: "status", body: `Scheduled → ${j.status}`, author: "Office", created_at: new Date(Math.min(+j.scheduled_for, Date.now() - 3600000)) }]),
+  ]);
+  await sql`insert into job_events ${sql(history)}`;
   console.log(`Seeded ${rows.length} jobs`);
 } else {
   console.log(`Schema ok, ${count} jobs present`);
