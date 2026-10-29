@@ -1,7 +1,8 @@
 @import "tailwindcss";
 
 @theme inline {
-  --font-sans: var(--font-brand), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-brand), var(--font-ui), sans-serif;
   --color-brand: #ff5e1e;
   --color-brand-deep: #e04a0e;
   --color-brand-soft: #fff1ea;
@@ -27,6 +28,24 @@ body {
 
 .tabular {
   font-variant-numeric: tabular-nums;
+}
+
+/* Montserrat for headings and big figures; Inter carries body text. */
+h1, h2, h3 {
+  font-family: var(--font-display);
+}
+
+/* While a sort or search is loading, dim the old results instead of leaving them looking current. */
+html[data-busy] #results {
+  opacity: 0.55;
+  transition: opacity 150ms ease;
+}
+#results {
+  transition: opacity 150ms ease;
+}
+
+#jobs {
+  scroll-margin-top: 5.5rem;
 }
 
 /* Ampy orange with a soft light in one corner and shade in the other, so it isn't flat. */

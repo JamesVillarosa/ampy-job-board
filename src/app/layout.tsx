@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { Montserrat } from "next/font/google";
+import { Inter, Montserrat } from "next/font/google";
 import { AskBoard } from "./ask";
 import "./globals.css";
 
 const brand = Montserrat({ variable: "--font-brand", subsets: ["latin"] });
+const ui = Inter({ variable: "--font-ui", subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Job Board · Ampy Electrical",
@@ -14,13 +15,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en-AU" className={brand.variable}>
+    <html lang="en-AU" className={`${brand.variable} ${ui.variable}`}>
       <body className="flex min-h-dvh flex-col">
         <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-md focus:bg-ink focus:px-3 focus:py-2 focus:text-sm focus:text-white">
           Skip to content
         </a>
 
-        <header className="sticky top-0 z-20 border-b border-line bg-white/90 backdrop-blur-md">
+        <header className="sticky top-0 z-20 border-b border-line bg-white">
           <div className="shell flex h-16 items-center justify-between gap-4">
             <div className="flex items-center gap-6">
               <Link href="/" className="rounded-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand">

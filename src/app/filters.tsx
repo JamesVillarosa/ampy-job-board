@@ -13,6 +13,15 @@ export function Filters() {
   const params = useSearchParams();
   const [q, setQ] = useState(params.get("q") ?? "");
   const [pending, startTransition] = useTransition();
+  // Show the chosen sort straight away and dim the old results until the new ones arrive.
+  const [pendingSort, setPendingSort] = useState<string | null>(null);
+  useEffect(() => {
+    if (pending) document.documentElement.dataset.busy = "";
+    else {
+      delete document.documentElement.dataset.busy;
+      setPendingSort(null);
+    }
+  }, [pending]);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const lastPushed = useRef(params.get("q") ?? "");
 
@@ -47,8 +56,8 @@ export function Filters() {
 
   return (
     <form role="search" className="flex w-full gap-2 lg:w-auto" onSubmit={(e) => e.preventDefault()}>
-      <label className="relative min-w-0 flex-1 lg:w-80">
-        <span className="sr-only">Search customers</span>
+      <label className="relative min-w-0 flex-1 lg:w-96">
+        <span className="sr-only">Search jobs</span>
         <svg aria-hidden viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted">
           <circle cx="9" cy="9" r="6" /><path d="m14 14 3.5 3.5" strokeLinecap="round" />
         </svg>
@@ -58,7 +67,7 @@ export function Filters() {
           aria-keyshortcuts="/"
           name="q"
           value={q}
-          placeholder="Search customers"
+          placeholder="Search customer, suburb or job number"
           autoComplete="off"
           onChange={(e) => {
             const v = e.target.value;
@@ -71,12 +80,13 @@ export function Filters() {
         <kbd aria-hidden className={`pointer-events-none absolute top-1/2 right-3 hidden -translate-y-1/2 rounded border border-line px-1.5 text-[11px] leading-5 text-muted sm:block ${pending || q ? "opacity-0" : ""}`}>/</kbd>
         <span aria-hidden className={`absolute top-1/2 right-3.5 size-4 -translate-y-1/2 rounded-full border-2 border-line border-t-brand transition-opacity duration-150 ${pending ? "animate-spin opacity-100" : "opacity-0"}`} />
       </label>
-      <SortMenu value={params.get("sort") ?? "newest"} onChange={(v) => push("sort", v === "newest" ? "" : v)} />
+      <SortMenu value={pendingSort ?? params.get("sort") ?? "attention"} onChange={(v) => { setPendingSort(v); push("sort", v === "attention" ? "" : v); }} />
     </form>
   );
 }
 
 const SORTS = [
+  ["attention", "Needs attention first"],
   ["newest", "Latest booked"],
   ["oldest", "Earliest booked"],
   ["value", "Highest value"],
