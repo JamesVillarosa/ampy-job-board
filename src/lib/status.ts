@@ -11,3 +11,6 @@ export const STATUS_STYLE: Record<Status, { badge: string; dot: string }> = {
   Completed: { badge: "bg-emerald-50 text-emerald-800 ring-emerald-200", dot: "bg-emerald-500" },
   Cancelled: { badge: "bg-stone-100 text-stone-500 ring-stone-200", dot: "bg-stone-400" },
 };
+
+// Who can sign a note. shortcut: fixed list, no login; swap for real accounts when the app gets sign-in.
+export const TEAM = ["Office", "Ethan", "Josh", "Liam", "Mia"] as const;

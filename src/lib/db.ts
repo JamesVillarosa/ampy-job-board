@@ -13,9 +13,12 @@ export type Job = {
   value: number;
   technician: string | null;
   scheduled_for: Date | null;
+  phone: string | null;
+  overdue: boolean;
+  days_overdue: number | null;
 };
 
-export type JobEvent = { id: number; kind: "note" | "status"; body: string; created_at: Date };
+export type JobEvent = { id: number; kind: "note" | "status"; body: string; author: string | null; created_at: Date };
 
 // Reuse one pool across hot reloads in dev.
 const g = globalThis as unknown as { sql?: postgres.Sql };
@@ -27,7 +30,16 @@ export const sql =
   });
 if (process.env.NODE_ENV !== "production") g.sql = sql;
 
+// Today in Bendigo; the DB runs in UTC, so current_date is wrong for the first ten or so hours of each day.
+const TODAY = sql`(now() at time zone 'Australia/Melbourne')::date`;
+// Still "Scheduled" but the booked day has passed: someone forgot to update it, or the visit slipped.
+export const OVERDUE = sql`(status = 'Scheduled' and scheduled_for < ${TODAY})`;
+// Every job query returns these, so lists and the job page agree on what's overdue.
+const COLUMNS = sql`*, ${OVERDUE} as overdue, case when ${OVERDUE} then ${TODAY} - scheduled_for end as days_overdue`;
+
 const SORTS = {
+  // Overdue first, then today and upcoming soonest-first, then past jobs newest-first.
+  attention: sql`case when ${OVERDUE} then 0 when scheduled_for >= ${TODAY} then 1 else 2 end, case when scheduled_for >= ${TODAY} or ${OVERDUE} then scheduled_for end asc, scheduled_for desc`,
   newest: sql`scheduled_for desc`,
   oldest: sql`scheduled_for asc`,
   value: sql`value desc`,
@@ -36,12 +48,14 @@ const SORTS = {
 export type Sort = keyof typeof SORTS;
 export const isSort = (s: unknown): s is Sort => typeof s === "string" && s in SORTS;
 
-export async function listJobs({ status, q, sort }: { status?: Status; q?: string; sort: Sort }) {
-  return sql<(Job & { overdue: boolean })[]>`
-    select *, ${OVERDUE} as overdue from jobs
+export async function listJobs({ status, q, sort, overdue }: { status?: Status; q?: string; sort: Sort; overdue?: boolean }) {
+  const like = q && "%" + q.replace(/[%_\\]/g, "\\$&") + "%";
+  return sql<Job[]>`
+    select ${COLUMNS} from jobs
     where true
       ${status ? sql`and status = ${status}` : sql``}
-      ${q ? sql`and customer ilike ${"%" + q.replace(/[%_\\]/g, "\\$&") + "%"}` : sql``}
+      ${overdue ? sql`and ${OVERDUE}` : sql``}
+      ${like ? sql`and (customer ilike ${like} or suburb ilike ${like} or job_type ilike ${like} or job_number ilike ${like})` : sql``}
     order by ${SORTS[sort]}, id`;
 }
 
@@ -54,26 +68,22 @@ export async function getStats() {
   >;
 }
 
-// Still "Scheduled" but the booked day has passed: someone forgot to update it, or the visit slipped.
-// ponytail: compares against the DB server's date (UTC); set the DB timezone to Australia/Melbourne in prod.
-export const OVERDUE = sql`(status = 'Scheduled' and scheduled_for < current_date)`;
-
 export async function overdueJobs() {
-  return sql<Job[]>`select * from jobs where ${OVERDUE} order by scheduled_for, id`;
+  return sql<Job[]>`select ${COLUMNS} from jobs where ${OVERDUE} order by scheduled_for, id`;
 }
 
 // Next open bookings, for the run-sheet ticker.
 export async function upcomingJobs(limit = 10) {
   return sql<Job[]>`
-    select * from jobs
-    where status in ('Scheduled', 'In Progress') and scheduled_for >= current_date
+    select ${COLUMNS} from jobs
+    where status in ('Scheduled', 'In Progress') and scheduled_for >= ${TODAY}
     order by scheduled_for, id limit ${limit}`;
 }
 
 export async function getJob(id: number) {
-  const [job] = await sql<Job[]>`select * from jobs where id = ${id}`;
+  const [job] = await sql<Job[]>`select ${COLUMNS} from jobs where id = ${id}`;
   if (!job) return null;
   const events = await sql<JobEvent[]>`
-    select id, kind, body, created_at from job_events where job_id = ${id} order by created_at desc, id desc`;
+    select id, kind, body, author, created_at from job_events where job_id = ${id} and deleted_at is null order by created_at desc, id desc`;
   return { job, events };
 }
