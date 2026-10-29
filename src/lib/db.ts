@@ -27,6 +27,8 @@ export const sql =
   g.sql ??
   postgres(process.env.DATABASE_URL!, {
     max: 5,
+    // Neon's pooler (PgBouncer) can keep stale prepared plans after a schema reset; plain queries avoid that.
+    prepare: false,
     types: { numeric: { to: 1700, from: [1700], serialize: String, parse: Number } },
   });
 if (process.env.NODE_ENV !== "production") g.sql = sql;
