@@ -139,7 +139,7 @@ async function Board({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
                 </ul>
                 <Link
                   href="/?overdue=1#jobs"
-                  className="mt-3 flex h-11 items-center justify-center rounded-xl bg-brand text-sm font-bold text-white transition-[background-color,transform] duration-150 ease-out hover:bg-brand-deep active:scale-[0.97]"
+                  className="mt-3 flex h-11 items-center justify-center rounded-xl bg-brand-deep text-sm font-bold text-white transition-[background-color,transform] duration-150 ease-out hover:bg-brand-press active:scale-[0.97]"
                 >
                   Review overdue
                 </Link>
@@ -158,7 +158,7 @@ async function Board({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
       <section id="jobs" aria-labelledby="jobs-heading" className="space-y-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <h2 id="jobs-heading" className="text-2xl font-extrabold tracking-tight">
-            {overdueOnly ? "Overdue jobs" : "All jobs"} <span className="tabular text-muted/60">{jobs.length}</span>
+            {overdueOnly ? "Overdue jobs" : "All jobs"} <span className="tabular text-muted">{jobs.length}</span>
           </h2>
           <Suspense>
             <Filters />
@@ -196,7 +196,7 @@ async function Board({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
               <p className="mt-1 text-muted">
                 Nothing for {q ? `“${q}”` : "this filter"}{status ? ` in ${status}` : ""}. Check the spelling or show everything.
               </p>
-              <Link href="/" className="mt-5 inline-flex h-11 items-center rounded-xl bg-brand px-5 text-sm font-bold text-white transition-[background-color,transform] duration-150 ease-out hover:bg-brand-deep active:scale-[0.97]">
+              <Link href="/" className="mt-5 inline-flex h-11 items-center rounded-xl bg-brand-deep px-5 text-sm font-bold text-white transition-[background-color,transform] duration-150 ease-out hover:bg-brand-press active:scale-[0.97]">
                 Clear filters
               </Link>
             </div>

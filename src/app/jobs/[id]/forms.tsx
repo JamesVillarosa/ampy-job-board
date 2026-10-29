@@ -6,7 +6,7 @@ import { addNote, briefJob, editNote, setNoteDeleted, setStatus, type BriefState
 
 const MAX = 2000;
 const primary =
-  "inline-flex h-11 items-center justify-center rounded-xl bg-brand px-5 text-sm font-bold text-white transition-[background-color,transform,opacity] duration-150 ease-out hover:bg-brand-deep active:scale-[0.97] disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
+  "inline-flex h-11 items-center justify-center rounded-xl bg-brand-deep px-5 text-sm font-bold text-white transition-[background-color,transform,opacity] duration-150 ease-out hover:bg-brand-press active:scale-[0.97] disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
 const quiet =
   "inline-flex h-9 items-center rounded-lg px-2.5 text-sm font-semibold text-muted transition-[background-color,color] duration-150 hover:bg-canvas hover:text-ink focus-visible:outline-2 focus-visible:outline-brand";
 

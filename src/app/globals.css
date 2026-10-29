@@ -4,7 +4,8 @@
   --font-sans: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-brand), var(--font-ui), sans-serif;
   --color-brand: #ff5e1e;
-  --color-brand-deep: #e04a0e;
+  --color-brand-deep: #c2410c; /* text and button fill on white: 5.2:1 */
+  --color-brand-press: #9a3412;
   --color-brand-soft: #fff1ea;
   --color-ink: #1a130e;
   --color-canvas: #f6f4f2;
