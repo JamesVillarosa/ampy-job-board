@@ -68,73 +68,58 @@ async function Board({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
             <p className="text-sm font-semibold text-white">
               {greeting()}, team · {today.format(new Date())}
             </p>
-            <h1 id="today" className="mt-2 text-3xl font-extrabold tracking-tight text-balance sm:text-4xl">
+            <h1 id="today" className="mt-2 text-4xl leading-[1.05] font-extrabold tracking-tight text-balance sm:text-5xl xl:text-6xl">
               Here’s the day at a glance
             </h1>
-            <ul className="mt-6 grid grid-cols-3 gap-2.5 sm:gap-3">
+            <p className="mt-5 text-lg font-semibold">
+              <span className="tabular font-display text-3xl font-extrabold sm:text-4xl">{money(open.total)}</span>
+              <span className="block sm:inline"> of open work across {open.count} jobs</span>
+            </p>
+            {/* Straight on the orange: number, status, dollars. Each opens that filter. */}
+            <ul className="mt-auto grid grid-cols-3 divide-x divide-white/25 pt-8">
               {OPEN.map((s) => (
-                <li key={s}>
+                <li key={s} className="px-3 first:pl-0 sm:px-5">
                   <Link
                     href={`${href(s)}#jobs`}
-                    className="block rounded-2xl bg-white/15 p-3 ring-1 ring-white/30 transition-[background-color,transform] duration-200 ease-out hover:bg-white/25 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:p-4"
+                    className="group block rounded-lg transition-transform duration-200 ease-out active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
                   >
-                    <span className="tabular block font-display text-3xl font-extrabold sm:text-4xl">{stats[s].count}</span>
-                    <span className="mt-1 block text-sm font-semibold">{s}</span>
+                    <span className="tabular block font-display text-5xl leading-none font-extrabold sm:text-6xl">{stats[s].count}</span>
+                    <span className="mt-2 block text-base font-bold underline-offset-4 group-hover:underline">{s}</span>
+                    <span className="tabular block text-base font-semibold">{money(stats[s].total)}</span>
                   </Link>
                 </li>
               ))}
             </ul>
-            {/* Where the open work sits, in the same colours as the status chips below. */}
-            <div className="mt-auto pt-6">
-              <div className="rounded-2xl bg-white p-4 text-ink shadow-[0_12px_32px_-16px_rgb(60_20_0/0.5)]">
-                <p className="text-sm font-semibold text-muted">
-                  <span className="tabular font-display text-xl font-extrabold text-ink">{money(open.total)}</span> of open work across {open.count} jobs
-                </p>
-                <div className="mt-3 flex h-2.5 gap-1" role="img" aria-label={OPEN.map((s) => `${s} ${money(stats[s].total)}`).join(", ")}>
-                  {OPEN.map((s) => (
-                    <span key={s} className={`rounded-full ${STATUS_STYLE[s].dot}`} style={{ flexGrow: stats[s].total }} />
-                  ))}
-                </div>
-                <ul className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-sm font-semibold">
-                  {OPEN.map((s) => (
-                    <li key={s} className="flex items-center gap-2">
-                      <span aria-hidden className={`size-2.5 rounded-full ${STATUS_STYLE[s].dot}`} />
-                      {s} <span className="tabular text-muted">{money(stats[s].total)}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
           </div>
 
-          <div role="status" className="rounded-2xl bg-white p-5 text-ink shadow-[0_12px_32px_-16px_rgb(60_20_0/0.5)]">
+          <div role="status" className="rounded-2xl bg-ink p-5 text-white shadow-[0_20px_40px_-20px_rgb(60_20_0/0.8)] sm:p-6">
             {overdue.length > 0 ? (
               <>
                 <div className="flex items-start gap-3">
-                  <span aria-hidden className="mt-1.5 size-2.5 shrink-0 rounded-full bg-red-500 ring-4 ring-red-100" />
+                  <span aria-hidden className="mt-1.5 size-2.5 shrink-0 rounded-full bg-red-500 ring-4 ring-red-500/25" />
                   <div>
                     <h2 className="text-lg font-bold">Needs a follow-up</h2>
-                    <p className="mt-0.5 text-sm text-muted">
+                    <p className="mt-0.5 text-sm text-white/75">
                       {overdue.length} {overdue.length === 1 ? "job is" : "jobs are"} past the booked date and still marked Scheduled.
                     </p>
                   </div>
                 </div>
-                <ul className="mt-3 divide-y divide-line">
+                <ul className="mt-3 divide-y divide-white/10">
                   {shown.map((j) => (
                     <li key={j.id}>
                       <Link href={`/jobs/${j.id}`} className="group flex min-h-12 items-center justify-between gap-3 py-2">
                         <span className="min-w-0">
-                          <span className="block truncate font-semibold group-hover:text-brand-deep">{j.customer}</span>
-                          <span className="block text-sm text-muted">
+                          <span className="block truncate font-semibold group-hover:underline">{j.customer}</span>
+                          <span className="block text-sm text-white/70">
                             {j.suburb} · {j.days_overdue} {j.days_overdue === 1 ? "day" : "days"} late
                           </span>
                         </span>
-                        <span aria-hidden className="text-muted transition-transform duration-200 ease-out group-hover:translate-x-0.5 group-hover:text-brand">→</span>
+                        <span aria-hidden className="text-white/60 transition-transform duration-200 ease-out group-hover:translate-x-0.5 group-hover:text-white">→</span>
                       </Link>
                     </li>
                   ))}
                   {shown.length < overdue.length && (
-                    <li className="py-2 text-sm font-semibold text-muted">+ {overdue.length - shown.length} more</li>
+                    <li className="py-2 text-sm font-semibold text-white/70">+ {overdue.length - shown.length} more</li>
                   )}
                 </ul>
                 <Link
@@ -146,9 +131,9 @@ async function Board({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
               </>
             ) : (
               <div className="flex h-full flex-col items-center justify-center py-6 text-center">
-                <span aria-hidden className="grid size-10 place-items-center rounded-full bg-emerald-100 font-bold text-emerald-700">✓</span>
+                <span aria-hidden className="grid size-10 place-items-center rounded-full bg-emerald-500/20 font-bold text-emerald-300">✓</span>
                 <h2 className="mt-3 text-lg font-bold">All caught up</h2>
-                <p className="mt-1 text-sm text-muted">No jobs are past their booked date.</p>
+                <p className="mt-1 text-sm text-white/70">No jobs are past their booked date.</p>
               </div>
             )}
           </div>
@@ -181,7 +166,7 @@ async function Board({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
                   >
                     {dot && <span aria-hidden className={`size-2 rounded-full ${dot}`} />}
                     {label}
-                    <span className={`tabular rounded-full px-1.5 text-xs ${active ? "bg-white/15" : "bg-canvas text-muted"}`}>{count}</span>
+                    <span className={`tabular text-sm ${active ? "text-white/75" : "text-muted"}`}>{count}</span>
                   </KeepSort>
                 </li>
               );
