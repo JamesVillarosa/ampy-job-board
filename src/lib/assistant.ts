@@ -61,6 +61,8 @@ const withStatus = (j: Row): Row => ({ ...j, job_type: `${j.job_type}, ${j.statu
 
 // Handover brief in three plain sentences: where it stands, what the notes say (all of them), what to do next.
 const clip = (t: string) => (t.length > 140 ? `${t.slice(0, 139).trimEnd()}…` : t).replace(/\s+/g, " ");
+// Quote a note and end the sentence, without doubling a full stop the note already has.
+const quoteEnd = (t: string) => `"${clip(t)}"${/[.!?…]$/.test(clip(t)) ? "" : "."}`;
 
 export function brief(job: Job, events: JobEvent[]): string {
   const notes = events.filter((e) => e.kind === "note"); // newest first
@@ -80,11 +82,11 @@ export function brief(job: Job, events: JobEvent[]): string {
 
   const said = notes.length
     ? notes.length === 1
-      ? `${notes[0].author ?? "Office"} noted on ${date(notes[0].created_at)}: "${clip(notes[0].body)}".`
+      ? `${notes[0].author ?? "Office"} noted on ${date(notes[0].created_at)}: ${quoteEnd(notes[0].body)}`
       : `Latest of ${notes.length} notes, from ${notes[0].author ?? "Office"} on ${date(notes[0].created_at)}: "${clip(notes[0].body)}"; earlier: ${notes
-          .slice(1)
-          .map((n) => `"${clip(n.body)}"`)
-          .join(", ")}.`
+          .slice(1, -1)
+          .map((n) => `"${clip(n.body)}", `)
+          .join("")}${quoteEnd(notes.at(-1)!.body)}`
     : "No notes yet, so confirm access, parking and the exact scope with the customer before attending.";
 
   const next: Record<Status, string> = {
