@@ -41,8 +41,8 @@ export const OVERDUE = sql`(status = 'Scheduled' and scheduled_for < ${TODAY})`;
 const COLUMNS = sql`*, ${OVERDUE} as overdue, case when ${OVERDUE} then ${TODAY} - scheduled_for end as days_overdue`;
 
 const SORTS = {
-  // Overdue first, then today and upcoming soonest-first, then past jobs newest-first.
-  attention: sql`case when ${OVERDUE} then 0 when scheduled_for >= ${TODAY} then 1 else 2 end, case when scheduled_for >= ${TODAY} or ${OVERDUE} then scheduled_for end asc, scheduled_for desc`,
+  // Overdue first, then work on the tools, then today and upcoming soonest-first, then past jobs newest-first.
+  attention: sql`case when ${OVERDUE} then 0 when status = 'In Progress' then 1 when scheduled_for >= ${TODAY} then 2 else 3 end, case when scheduled_for >= ${TODAY} or ${OVERDUE} or status = 'In Progress' then scheduled_for end asc, scheduled_for desc`,
   newest: sql`scheduled_for desc`,
   oldest: sql`scheduled_for asc`,
   value: sql`value desc`,

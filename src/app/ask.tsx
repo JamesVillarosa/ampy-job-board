@@ -14,6 +14,18 @@ export function AskBoard() {
   const log = useRef<HTMLOListElement>(null);
   const launcher = useRef<HTMLButtonElement>(null);
   const root = useRef<HTMLDivElement>(null);
+  // Phones: tuck the launcher away while scrolling down so it never covers a date or name; back on scroll up.
+  const [tucked, setTucked] = useState(false);
+  useEffect(() => {
+    let last = scrollY;
+    const onScroll = () => {
+      if (Math.abs(scrollY - last) < 8) return;
+      setTucked(scrollY > last && scrollY > 80);
+      last = scrollY;
+    };
+    addEventListener("scroll", onScroll, { passive: true });
+    return () => removeEventListener("scroll", onScroll);
+  }, []);
 
   useEffect(() => {
     if (open) input.current?.focus();
@@ -121,7 +133,7 @@ export function AskBoard() {
             placeholder="e.g. Who's on hold and why?"
             className="h-10 min-w-0 flex-1 rounded-xl bg-canvas px-3 text-sm font-medium ring-1 ring-line outline-none placeholder:text-muted focus:ring-2 focus:ring-brand disabled:opacity-60"
           />
-          <button disabled={pending} className="h-10 rounded-xl bg-brand-deep px-4 text-sm font-bold text-white transition-[background-color,transform,opacity] duration-150 ease-out hover:bg-brand-press active:scale-[0.97] disabled:opacity-50">
+          <button disabled={pending} className="h-10 rounded-xl bg-brand px-4 text-sm font-bold text-white transition-[background-color,transform,opacity] duration-150 ease-out hover:bg-brand active:scale-[0.97] disabled:opacity-50">
             Ask
           </button>
         </form>
@@ -133,7 +145,7 @@ export function AskBoard() {
         aria-controls="ask-panel"
         onClick={() => setOpen((o) => !o)}
         aria-label={open ? "Close" : "Ask the board"}
-        className="flex size-11 items-center justify-center gap-2 rounded-full sm:h-10 sm:w-auto sm:pr-4 sm:pl-3.5 bg-ink text-sm font-bold text-white shadow-[0_12px_30px_-10px_rgb(40_20_5/0.6)] transition-[background-color,transform] duration-150 ease-out hover:bg-ink/90 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+        className={`${tucked && !open ? "pointer-events-none translate-y-20 opacity-0 sm:pointer-events-auto sm:translate-y-0 sm:opacity-100" : ""} flex size-11 items-center justify-center gap-2 rounded-full sm:h-10 sm:w-auto sm:pr-4 sm:pl-3.5 bg-ink text-sm font-bold text-white shadow-[0_12px_30px_-10px_rgb(40_20_5/0.6)] transition-[background-color,transform,opacity] duration-200 ease-out hover:bg-ink/90 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand`}
       >
         <svg aria-hidden viewBox="0 0 20 20" className="size-4 text-brand" fill="currentColor"><path d="M10 1l2.2 5.8L18 9l-5.8 2.2L10 17l-2.2-5.8L2 9l5.8-2.2L10 1Z" /></svg>
         {/* Icon only on phones so it never sits over a job's value or buttons. */}

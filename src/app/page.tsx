@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { getStats, isSort, isStatus, listJobs, overdueJobs, STATUSES, type Job, type Status } from "@/lib/db";
-import { STATUS_STYLE } from "@/lib/status";
+import { OVERDUE_ICON, STATUS_STYLE } from "@/lib/status";
 import { date, money } from "@/lib/format";
 import { StatusBadge, Tech } from "./components";
 import { Filters } from "./filters";
@@ -54,8 +54,9 @@ async function Board({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
   };
   const chips: [Status | "overdue" | undefined, string, string | null, number][] = [
     [undefined, "All", null, all],
-    ["overdue", "Overdue", "bg-red-500", overdue.length],
     ...STATUSES.map((s): [Status, string, string, number] => [s, s, STATUS_STYLE[s].dot, stats[s].count]),
+    // Overdue is a flag on Scheduled jobs, not a status, so it sits apart and in red: its count overlaps Scheduled.
+    ["overdue", "Overdue", null, overdue.length],
   ];
   const activeChip = overdueOnly ? "overdue" : status;
   const shown = overdue.length > 4 ? overdue.slice(0, 3) : overdue;
@@ -124,7 +125,7 @@ async function Board({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
                 </ul>
                 <Link
                   href="/?overdue=1#jobs"
-                  className="mt-3 flex h-11 items-center justify-center rounded-xl bg-brand-deep text-sm font-bold text-white transition-[background-color,transform] duration-150 ease-out hover:bg-brand-press active:scale-[0.97]"
+                  className="mt-3 flex h-11 items-center justify-center rounded-xl bg-brand text-sm font-bold text-white transition-[background-color,transform] duration-150 ease-out hover:bg-brand active:scale-[0.97]"
                 >
                   Review overdue
                 </Link>
@@ -155,18 +156,25 @@ async function Board({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
             {chips.map(([key, label, dot, count]) => {
               const active = key === activeChip;
               return (
-                <li key={label}>
+                <li key={label} className={key === "overdue" ? "ml-1 border-l border-line pl-3" : undefined}>
                   <KeepSort
                     href={href(key)}
                     scroll={false}
                     aria-current={active ? "page" : undefined}
                     className={`flex h-11 items-center gap-2 rounded-full px-4 text-sm font-semibold whitespace-nowrap ring-1 transition-[background-color,color,box-shadow,transform] duration-200 ease-out active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
-                      active ? "bg-ink text-white ring-ink" : "bg-white text-ink/80 ring-line hover:text-ink hover:ring-ink/25"
+                      active
+                        ? "bg-ink text-white ring-ink"
+                        : key === "overdue"
+                          ? "bg-red-50 text-red-700 ring-red-200 hover:ring-red-300"
+                          : "bg-white text-ink/80 ring-line hover:text-ink hover:ring-ink/25"
                     }`}
                   >
                     {dot && <span aria-hidden className={`size-2 rounded-full ${dot}`} />}
+                    {key === "overdue" && (
+                      <svg aria-hidden viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="size-4"><path d={OVERDUE_ICON} /></svg>
+                    )}
                     {label}
-                    <span className={`tabular text-sm ${active ? "text-white/75" : "text-muted"}`}>{count}</span>
+                    <span className={`tabular text-sm ${active ? "text-white/75" : key === "overdue" ? "text-red-700/80" : "text-muted"}`}>{count}</span>
                   </KeepSort>
                 </li>
               );
@@ -181,7 +189,7 @@ async function Board({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
               <p className="mt-1 text-muted">
                 Nothing for {q ? `“${q}”` : "this filter"}{status ? ` in ${status}` : ""}. Check the spelling or show everything.
               </p>
-              <Link href="/" className="mt-5 inline-flex h-11 items-center rounded-xl bg-brand-deep px-5 text-sm font-bold text-white transition-[background-color,transform] duration-150 ease-out hover:bg-brand-press active:scale-[0.97]">
+              <Link href="/" className="mt-5 inline-flex h-11 items-center rounded-xl bg-brand px-5 text-sm font-bold text-white transition-[background-color,transform] duration-150 ease-out hover:bg-brand active:scale-[0.97]">
                 Clear filters
               </Link>
             </div>

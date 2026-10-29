@@ -63,7 +63,7 @@ export function Filters() {
           aria-keyshortcuts="/"
           name="q"
           value={q}
-          placeholder="Search customer, suburb or job number"
+          placeholder="Customer, suburb, job no."
           autoComplete="off"
           onChange={(e) => {
             const v = e.target.value;

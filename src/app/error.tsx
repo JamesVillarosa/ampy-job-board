@@ -7,7 +7,7 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
       <p className="mt-2 text-sm text-muted">
         The error has been logged{error.digest ? ` (ref ${error.digest})` : ""}.
       </p>
-      <button onClick={reset} className="mt-6 inline-flex h-9 items-center rounded-lg bg-brand-deep px-4 text-sm font-medium text-white transition-[background-color,transform] duration-150 ease-out hover:bg-brand-press active:scale-[0.97]">Try again</button>
+      <button onClick={reset} className="mt-6 inline-flex h-9 items-center rounded-lg bg-brand px-4 text-sm font-medium text-white transition-[background-color,transform] duration-150 ease-out hover:bg-brand active:scale-[0.97]">Try again</button>
     </div>
   );
 }
