@@ -1,12 +1,12 @@
 "use client";
 
-import { createContext, use, useActionState, useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
+import { createContext, startTransition, use, useActionState, useEffect, useOptimistic, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { STATUS_STYLE, STATUSES, TEAM, type Status } from "@/lib/status";
-import { addNote, briefJob, editNote, setNoteDeleted, setStatus, type BriefState, type FormState } from "./actions";
+import { addNote, briefJob, editNote, setNoteDeleted, setStatus, undoStatus, type BriefState, type FormState } from "./actions";
 
 const MAX = 2000;
 const primary =
-  "inline-flex h-11 items-center justify-center rounded-xl bg-brand-deep px-5 text-sm font-bold text-white transition-[background-color,transform,opacity] duration-150 ease-out hover:bg-brand-press active:scale-[0.97] disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
+  "inline-flex h-11 items-center justify-center rounded-xl bg-brand px-5 text-sm font-bold text-white transition-[background-color,transform,opacity] duration-150 ease-out hover:bg-brand active:scale-[0.97] disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
 const quiet =
   "inline-flex h-9 items-center rounded-lg px-2.5 text-sm font-semibold text-muted transition-[background-color,color] duration-150 hover:bg-canvas hover:text-ink focus-visible:outline-2 focus-visible:outline-brand";
 
@@ -70,13 +70,25 @@ function useAuthor() {
 export function NoteForm({ jobId }: { jobId: number }) {
   const [state, action, pending] = useActionState<FormState, FormData>(addNote.bind(null, jobId), {});
   const [author, setAuthor] = useAuthor();
+  const [fixing, setFixing] = useState<FormState>();
+  const error = state !== fixing ? state.error : undefined;
   const ref = useRef<HTMLFormElement>(null);
   useEffect(() => {
     if (state.ok) ref.current?.reset();
   }, [state.ok]);
 
   return (
-    <form ref={ref} action={action} noValidate>
+    // onSubmit, not action=: a form action resets the fields even when the save fails, losing the note.
+    <form
+      ref={ref}
+      noValidate
+      onSubmit={(e) => {
+        e.preventDefault();
+        const data = new FormData(e.currentTarget);
+        startTransition(() => action(data));
+      }}
+      onChange={() => setFixing(state)}
+    >
       <label htmlFor="note" className="font-semibold">Add a note</label>
       <textarea
         id="note"
@@ -84,7 +96,7 @@ export function NoteForm({ jobId }: { jobId: number }) {
         rows={3}
         maxLength={MAX}
         placeholder="e.g. Customer asked for a call 30 min before arrival. Side gate code 4821."
-        aria-invalid={!!state.error}
+        aria-invalid={!!error}
         aria-describedby="note-error"
         onKeyDown={(e) => {
           if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) e.currentTarget.form?.requestSubmit();
@@ -105,7 +117,7 @@ export function NoteForm({ jobId }: { jobId: number }) {
         </div>
       </fieldset>
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-        <p id="note-error" role="alert" className="text-sm font-semibold text-red-700">{state.error}</p>
+        <p id="note-error" role="alert" className="text-sm font-semibold text-red-700">{error}</p>
         <button type="submit" disabled={pending} className={primary}>
           {pending ? "Saving…" : "Save note"}
         </button>
@@ -165,8 +177,15 @@ export function NoteItem({ jobId, id, body }: { jobId: number; id: number; body:
   );
 }
 
-export function AiBrief({ jobId }: { jobId: number }) {
+export function AiBrief({ jobId, version }: { jobId: number; version: string }) {
   const [state, action, pending] = useActionState<BriefState>(() => briefJob(jobId), {});
+  // Once written, rewrite it whenever a note or status changes, so it never shows stale or deleted notes.
+  const seen = useRef(version);
+  useEffect(() => {
+    if (seen.current === version) return;
+    seen.current = version;
+    if (state.text) startTransition(action);
+  }, [version, state.text, action]);
   return (
     <section aria-labelledby="brief" className="rounded-2xl bg-ink p-5 text-white sm:p-6">
       <div className="flex items-center justify-between gap-3">
@@ -183,59 +202,62 @@ export function AiBrief({ jobId }: { jobId: number }) {
         ) : state.error ? (
           <p role="alert" className="font-semibold text-red-300">{state.error}</p>
         ) : (
-          <p className="text-white/70">Sums up every note and status change into what the next tech needs to know.</p>
+          <p className="text-white/70">Sums up the notes and status history into what the next tech needs to know.</p>
         )}
       </div>
     </section>
   );
 }
 
+// Shows the new status the moment it's tapped; the server confirms behind it. Undo removes the change from the history.
 export function StatusForm({ jobId, current }: { jobId: number; current: Status }) {
-  const [state, action, pending] = useActionState<FormState, FormData>(setStatus.bind(null, jobId), {});
-  // Each change shows its toast until closed; `closed` remembers which change was dismissed.
-  const [closed, setClosed] = useState<number>();
-  const toast = state.from && state.ok !== closed ? state : undefined;
-  const form = useRef<HTMLFormElement>(null);
+  const [shown, setShown] = useOptimistic(current);
+  const [error, setError] = useState<string>();
+  const [, start] = useTransition();
+  const toast = use(ToastCtx);
+
+  const change = (to: Status) =>
+    start(async () => {
+      setShown(to);
+      setError(undefined);
+      const r = await setStatus(jobId, to);
+      if (r.error) return setError(r.error);
+      if (!r.eventId) return;
+      toast({
+        text: `Status changed to ${to}`,
+        undo: () =>
+          start(async () => {
+            setShown(r.from as Status);
+            const u = await undoStatus(jobId, r.eventId!, r.from);
+            if (u.error) setError(u.error);
+          }),
+      });
+    });
 
   return (
-    <form ref={form} action={action}>
-      <fieldset disabled={pending}>
-        <legend className="sr-only">Status</legend>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-          {STATUSES.map((s) => {
-            const active = s === current;
-            return (
-              <button
-                key={s}
-                name="status"
-                value={s}
-                aria-pressed={active}
-                className={`flex h-12 items-center justify-center gap-2 rounded-xl px-3 text-sm font-bold whitespace-nowrap ring-1 transition-[background-color,color,box-shadow,transform] duration-150 ease-out active:scale-[0.97] disabled:cursor-wait focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
-                  active ? "bg-ink text-white ring-ink" : `bg-white ring-line hover:ring-ink/30 ${STATUS_STYLE[s].text}`
-                }`}
-              >
-                <svg aria-hidden viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="size-4">
-                  <path d={STATUS_STYLE[s].icon} />
-                </svg>
-                {s}
-              </button>
-            );
-          })}
-        </div>
-        {state.error && <p role="alert" className="mt-2 text-sm font-semibold text-red-700">{state.error}</p>}
-      </fieldset>
-      {/* Undo resubmits the previous status through the same action. */}
-      <input type="hidden" name="status" value={toast?.from ?? ""} disabled={!toast} />
-      {toast?.from && (
-        <Toast
-          text={pending ? "Updating…" : `Status changed to ${toast.to}`}
-          onClose={() => setClosed(state.ok)}
-          onUndo={() => {
-            form.current?.requestSubmit();
-            setClosed(state.ok);
-          }}
-        />
-      )}
-    </form>
+    <div role="group" aria-label="Status">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+        {STATUSES.map((s) => {
+          const active = s === shown;
+          return (
+            <button
+              key={s}
+              type="button"
+              aria-pressed={active}
+              onClick={() => !active && change(s)}
+              className={`flex h-12 items-center justify-center gap-2 rounded-xl px-3 text-sm font-bold whitespace-nowrap ring-1 transition-[background-color,color,box-shadow,transform] duration-150 ease-out active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
+                active ? "bg-ink text-white ring-ink" : `bg-white ring-line hover:ring-ink/30 ${STATUS_STYLE[s].text}`
+              }`}
+            >
+              <svg aria-hidden viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="size-4">
+                <path d={STATUS_STYLE[s].icon} />
+              </svg>
+              {s}
+            </button>
+          );
+        })}
+      </div>
+      {error && <p role="alert" className="mt-2 text-sm font-semibold text-red-700">{error}</p>}
+    </div>
   );
 }

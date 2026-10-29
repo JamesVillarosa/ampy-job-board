@@ -5,7 +5,7 @@ import { brief } from "@/lib/assistant";
 import { getJob, isStatus, sql } from "@/lib/db";
 import { TEAM } from "@/lib/status";
 
-export type FormState = { error?: string; ok?: number; from?: string; to?: string };
+export type FormState = { error?: string; ok?: number };
 
 const MAX_NOTE = 2000;
 
@@ -35,18 +35,20 @@ export async function briefJob(jobId: number): Promise<BriefState> {
   return { text: brief(data.job, data.events) };
 }
 
-export async function setStatus(jobId: number, _prev: FormState, form: FormData): Promise<FormState> {
+export type StatusResult = { error?: string; from?: string; to?: string; eventId?: number };
+
+export async function setStatus(jobId: number, status: unknown): Promise<StatusResult> {
   if (!Number.isInteger(jobId)) return { error: "Unknown job." };
-  const status = form.get("status");
   if (!isStatus(status)) return { error: "Unknown status." };
   let from: string | undefined;
+  let eventId: number | undefined;
   try {
     await sql.begin(async (tx) => {
       const [prev] = await tx`select status from jobs where id = ${jobId} for update`;
       if (!prev || prev.status === status) return;
       from = prev.status;
       await tx`update jobs set status = ${status} where id = ${jobId}`;
-      await tx`insert into job_events (job_id, kind, body) values (${jobId}, 'status', ${`${prev.status} → ${status}`})`;
+      [{ id: eventId }] = await tx`insert into job_events (job_id, kind, body) values (${jobId}, 'status', ${`${prev.status} → ${status}`}) returning id`;
     });
   } catch (e) {
     console.error("setStatus failed", { jobId, e });
@@ -54,7 +56,24 @@ export async function setStatus(jobId: number, _prev: FormState, form: FormData)
   }
   revalidatePath("/");
   revalidatePath(`/jobs/${jobId}`);
-  return { ok: Date.now(), from, to: status };
+  return { from, to: status, eventId };
+}
+
+// Undo takes the change back out of the history instead of logging a second one.
+export async function undoStatus(jobId: number, eventId: number, from: unknown): Promise<StatusResult> {
+  if (!Number.isInteger(jobId) || !Number.isInteger(eventId) || !isStatus(from)) return { error: "Can't undo that." };
+  try {
+    await sql.begin(async (tx) => {
+      const [gone] = await tx`delete from job_events where id = ${eventId} and job_id = ${jobId} and kind = 'status' returning id`;
+      if (gone) await tx`update jobs set status = ${from} where id = ${jobId}`;
+    });
+  } catch (e) {
+    console.error("undoStatus failed", { jobId, e });
+    return { error: "Couldn't undo. Try again." };
+  }
+  revalidatePath("/");
+  revalidatePath(`/jobs/${jobId}`);
+  return { to: from };
 }
 
 // Notes: edit in place, soft delete so Undo can bring one back.

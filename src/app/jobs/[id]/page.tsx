@@ -119,8 +119,9 @@ async function JobDetail({ params }: Pick<PageProps<"/jobs/[id]">, "params">) {
         </section>
         </div>
 
-        <div className="h-fit space-y-6 lg:sticky lg:top-20">
-        <aside aria-label="Job details" className="rounded-2xl bg-white p-5 ring-1 ring-line sm:p-6">
+        {/* Phones: contents, so the call buttons can jump above the status card; desktop: sticky sidebar. */}
+        <div className="contents lg:sticky lg:top-20 lg:block lg:h-fit lg:space-y-6">
+        <aside aria-label="Job details" className="order-first rounded-2xl lg:order-none bg-white p-5 ring-1 ring-line sm:p-6">
           <h2 className="text-lg font-extrabold tracking-tight">Job details</h2>
           <dl className="mt-2 divide-y divide-line text-sm">
             <Row k="Booked" v={date(job.scheduled_for)} />
@@ -130,7 +131,7 @@ async function JobDetail({ params }: Pick<PageProps<"/jobs/[id]">, "params">) {
             <Row k="Suburb" v={job.suburb} />
           </dl>
           {job.phone && (
-            <a href={`tel:${job.phone.replace(/\s/g, "")}`} className="mt-5 flex h-12 items-center justify-center gap-2 rounded-xl bg-brand-deep text-sm font-bold text-white transition-[background-color,transform] duration-150 ease-out hover:bg-brand-press active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">
+            <a href={`tel:${job.phone.replace(/\s/g, "")}`} className="mt-5 flex h-12 items-center justify-center gap-2 rounded-xl bg-brand text-sm font-bold text-white transition-[background-color,transform] duration-150 ease-out hover:bg-brand active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">
               <svg aria-hidden viewBox="0 0 20 20" className="size-4" fill="currentColor"><path d="M3 4.5A1.5 1.5 0 0 1 4.5 3h2.1a1 1 0 0 1 1 .8l.6 3a1 1 0 0 1-.4 1L6.4 8.9a11 11 0 0 0 4.7 4.7l1.1-1.4a1 1 0 0 1 1-.4l3 .6a1 1 0 0 1 .8 1v2.1a1.5 1.5 0 0 1-1.5 1.5C9 17 3 11 3 4.5Z" /></svg>
               Call customer
             </a>
@@ -144,7 +145,7 @@ async function JobDetail({ params }: Pick<PageProps<"/jobs/[id]">, "params">) {
             Directions
           </a>
         </aside>
-        <AiBrief jobId={job.id} />
+        <AiBrief jobId={job.id} version={job.status + events.map((e) => `${e.id}:${e.body.length}`).join()} />
         </div>
       </div>
     </div>
