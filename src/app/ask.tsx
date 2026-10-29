@@ -14,17 +14,11 @@ export function AskBoard() {
   const log = useRef<HTMLOListElement>(null);
   const launcher = useRef<HTMLButtonElement>(null);
   const root = useRef<HTMLDivElement>(null);
-  // Phones: tuck the launcher away while scrolling down so it never covers a date or name; back on scroll up.
-  const [tucked, setTucked] = useState(false);
+  // Phones open the panel from the header button (AskHeaderButton), so nothing floats over the job list.
   useEffect(() => {
-    let last = scrollY;
-    const onScroll = () => {
-      if (Math.abs(scrollY - last) < 8) return;
-      setTucked(scrollY > last && scrollY > 80);
-      last = scrollY;
-    };
-    addEventListener("scroll", onScroll, { passive: true });
-    return () => removeEventListener("scroll", onScroll);
+    const toggle = () => setOpen((o) => !o);
+    addEventListener("ask:toggle", toggle);
+    return () => removeEventListener("ask:toggle", toggle);
   }, []);
 
   useEffect(() => {
@@ -36,11 +30,13 @@ export function AskBoard() {
     const close = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       setOpen(false);
-      launcher.current?.focus();
+      // Back to whichever Ask button is on screen: floating on wider screens, the header one on phones.
+      (launcher.current?.offsetParent ? launcher.current : document.querySelector<HTMLElement>("[data-ask-toggle]"))?.focus();
     };
     // Pointer down anywhere outside the panel and launcher closes it, like a popover.
     const outside = (e: PointerEvent) => {
-      if (!root.current?.contains(e.target as Node)) setOpen(false);
+      const t = e.target as Element;
+      if (!root.current?.contains(t) && !t.closest?.("[data-ask-toggle]")) setOpen(false);
     };
     document.addEventListener("keydown", close);
     document.addEventListener("pointerdown", outside);
@@ -145,13 +141,29 @@ export function AskBoard() {
         aria-controls="ask-panel"
         onClick={() => setOpen((o) => !o)}
         aria-label={open ? "Close" : "Ask the board"}
-        className={`${tucked && !open ? "pointer-events-none translate-y-20 opacity-0 sm:pointer-events-auto sm:translate-y-0 sm:opacity-100" : ""} flex size-11 items-center justify-center gap-2 rounded-full sm:h-10 sm:w-auto sm:pr-4 sm:pl-3.5 bg-ink text-sm font-bold text-white shadow-[0_12px_30px_-10px_rgb(40_20_5/0.6)] transition-[background-color,transform,opacity] duration-200 ease-out hover:bg-ink/90 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand`}
+        className={`hidden size-11 items-center sm:flex justify-center gap-2 rounded-full sm:h-10 sm:w-auto sm:pr-4 sm:pl-3.5 bg-ink text-sm font-bold text-white shadow-[0_12px_30px_-10px_rgb(40_20_5/0.6)] transition-[background-color,transform,opacity] duration-200 ease-out hover:bg-ink/90 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand`}
       >
         <svg aria-hidden viewBox="0 0 20 20" className="size-4 text-brand" fill="currentColor"><path d="M10 1l2.2 5.8L18 9l-5.8 2.2L10 17l-2.2-5.8L2 9l5.8-2.2L10 1Z" /></svg>
         {/* Icon only on phones so it never sits over a job's value or buttons. */}
         <span aria-hidden className="hidden sm:inline">{open ? "Close" : "Ask"}</span>
       </button>
     </div>
+  );
+}
+
+// Phone header button: same panel, no floating button over the list.
+export function AskHeaderButton() {
+  return (
+    <button
+      type="button"
+      data-ask-toggle
+      aria-controls="ask-panel"
+      onClick={() => dispatchEvent(new Event("ask:toggle"))}
+      className="flex h-10 items-center gap-1.5 rounded-full bg-ink px-3.5 text-sm font-bold text-white transition-transform duration-150 ease-out active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:hidden"
+    >
+      <svg aria-hidden viewBox="0 0 20 20" className="size-4 text-brand" fill="currentColor"><path d="M10 1l2.2 5.8L18 9l-5.8 2.2L10 17l-2.2-5.8L2 9l5.8-2.2L10 1Z" /></svg>
+      Ask
+    </button>
   );
 }
 

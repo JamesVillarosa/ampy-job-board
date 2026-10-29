@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test";
 
 // Table rows on desktop, job cards on phones.
+// Floating "Ask the board" on wider screens, "Ask" in the header on phones.
+const askButton = (page: import("@playwright/test").Page) => page.getByRole("button", { name: /^Ask( the board)?$/ }).filter({ visible: true });
 const rows = (page: import("@playwright/test").Page) => page.locator("#results").locator("tbody tr:visible, li:visible");
 
 test("lists 20 seeded jobs with stats", async ({ page }) => {
@@ -169,7 +171,7 @@ test("handover brief summarises the job record", async ({ page }) => {
 
 test("ask-the-board answers from live jobs and closes on Escape", async ({ page }) => {
   await page.goto("/");
-  const launcher = page.getByRole("button", { name: "Ask the board" });
+  const launcher = askButton(page);
   await launcher.click();
   const panel = page.getByRole("dialog", { name: "Ask the board" });
   await panel.getByRole("button", { name: "What's on in Strathdale?" }).click();
@@ -184,7 +186,7 @@ test("ask-the-board answers from live jobs and closes on Escape", async ({ page 
 
 test("ask-the-board closes on a click outside", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Ask the board" }).click();
+  await askButton(page).click();
   const panel = page.getByRole("dialog", { name: "Ask the board" });
   await expect(panel).toBeVisible();
   await panel.getByLabel("Question").click();
@@ -217,7 +219,7 @@ test("slash focuses search and chat links job refs to the job page", async ({ pa
   await page.waitForLoadState("networkidle"); // shortcut binds on hydration
   await page.keyboard.press("/");
   await expect(page.getByRole("searchbox", { name: "Search jobs" })).toBeFocused();
-  await page.getByRole("button", { name: "Ask the board" }).click();
+  await askButton(page).click();
   const panel = page.getByRole("dialog", { name: "Ask the board" });
   await panel.getByRole("button", { name: "Biggest open job?" }).click();
   await panel.getByRole("link", { name: "AMP-1042" }).click();

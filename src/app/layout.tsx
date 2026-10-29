@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { Inter, Montserrat } from "next/font/google";
-import { AskBoard } from "./ask";
+import { AskBoard, AskHeaderButton } from "./ask";
 import "./globals.css";
 
 const brand = Montserrat({ variable: "--font-brand", subsets: ["latin"] });
@@ -30,6 +30,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               <span className="hidden h-6 w-px bg-line sm:block" />
               <span className="hidden text-sm font-semibold text-muted sm:block">Team job board</span>
             </div>
+            <div className="flex items-center gap-2">
+            <AskHeaderButton />
             <a
               href="tel:0344163638"
               className="flex h-10 items-center gap-2 rounded-full bg-brand-soft px-4 text-sm font-bold text-brand-deep transition-[background-color,transform] duration-150 ease-out hover:bg-brand/15 active:scale-[0.97]"
@@ -38,6 +40,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               <span className="hidden sm:inline">Call the office</span>
               <span className="sm:hidden">Office</span>
             </a>
+            </div>
           </div>
         </header>
 
