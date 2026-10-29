@@ -59,25 +59,40 @@ export function answer(question: string, jobs: Row[]): string {
 // Keep the status visible when a list mixes statuses.
 const withStatus = (j: Row): Row => ({ ...j, job_type: `${j.job_type}, ${j.status}` });
 
-// Handover brief built from the whole record: where it's at, every status change and note (oldest first), next step.
+// Handover brief in three plain sentences: where it stands, what the notes say (all of them), what to do next.
+const clip = (t: string) => (t.length > 140 ? `${t.slice(0, 139).trimEnd()}…` : t).replace(/\s+/g, " ");
+
 export function brief(job: Job, events: JobEvent[]): string {
-  const overdue = job.overdue;
-  const oldest = events.toReversed();
-  const notes = oldest.filter((e) => e.kind === "note");
-  const changes = oldest.filter((e) => e.kind === "status");
-  const where = `${job.job_type} for ${job.customer} in ${job.suburb}, ${money(job.value)}. ${job.technician ? `${job.technician} has it` : "No tech assigned yet"}.`;
-  const history = changes.length ? `Status: ${changes.map((e) => `${e.body} (${date(e.created_at)})`).join(", then ")}.` : `Status: ${job.status}.`;
-  const noted = notes.length
-    ? `${notes.length} ${notes.length === 1 ? "note" : "notes"}:\n${notes.map((e) => `• ${e.author ?? "Office"}, ${date(e.created_at)}: ${e.body}`).join("\n")}`
-    : "No notes yet, so confirm access, parking and the exact scope with the customer before attending.";
-  const next: Record<Status, string> = {
-    Scheduled: overdue
-      ? `It was booked for ${date(job.scheduled_for)} and is still Scheduled: call the customer to rebook or mark it In Progress.`
-      : `Booked for ${date(job.scheduled_for)}. Check stock before the day.`,
-    "In Progress": "Work is under way. Log anything the next tech needs before you leave site.",
-    "On Hold": "Waiting on the customer or parts. Chase it up and set a date.",
-    Completed: "Job is done. Make sure it's invoiced.",
-    Cancelled: "Cancelled. Nothing to action unless the customer comes back.",
+  const notes = events.filter((e) => e.kind === "note"); // newest first
+  const changed = events.find((e) => e.kind === "status")?.created_at;
+  const since = changed ? date(changed) : date(job.scheduled_for);
+  const state: Record<Status, string> = {
+    Scheduled: job.overdue
+      ? `booked ${date(job.scheduled_for)} and still Scheduled, ${job.days_overdue} ${job.days_overdue === 1 ? "day" : "days"} overdue`
+      : `booked for ${date(job.scheduled_for)}`,
+    "In Progress": `in progress since ${since}`,
+    "On Hold": `on hold since ${since}`,
+    Completed: `completed ${since}`,
+    Cancelled: `cancelled ${since}`,
   };
-  return `${where} ${history}\n\n${noted}\n\nNext: ${next[job.status]}`;
+  const who = job.technician ? `with ${job.technician}` : "with no tech assigned";
+  const where = `${job.job_type} for ${job.customer} in ${job.suburb} (${money(job.value)}), ${who}, ${state[job.status]}.`;
+
+  const said = notes.length
+    ? notes.length === 1
+      ? `${notes[0].author ?? "Office"} noted on ${date(notes[0].created_at)}: "${clip(notes[0].body)}".`
+      : `Latest of ${notes.length} notes, from ${notes[0].author ?? "Office"} on ${date(notes[0].created_at)}: "${clip(notes[0].body)}"; earlier: ${notes
+          .slice(1)
+          .map((n) => `"${clip(n.body)}"`)
+          .join(", ")}.`
+    : "No notes yet, so confirm access, parking and the exact scope with the customer before attending.";
+
+  const next: Record<Status, string> = {
+    Scheduled: job.overdue ? "Call the customer to rebook, or mark it In Progress if it's under way." : "Check stock before the day.",
+    "In Progress": "Log anything the next tech needs before leaving site.",
+    "On Hold": "Chase the customer or parts and set a date.",
+    Completed: "Make sure it's invoiced.",
+    Cancelled: "Nothing to action unless the customer comes back.",
+  };
+  return `${where} ${said} ${next[job.status]}`;
 }
