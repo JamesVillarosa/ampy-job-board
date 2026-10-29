@@ -13,14 +13,10 @@ export function Filters() {
   const params = useSearchParams();
   const [q, setQ] = useState(params.get("q") ?? "");
   const [pending, startTransition] = useTransition();
-  // Show the chosen sort straight away and dim the old results until the new ones arrive.
-  const [pendingSort, setPendingSort] = useState<string | null>(null);
+  // Dim the old results while a search loads.
   useEffect(() => {
     if (pending) document.documentElement.dataset.busy = "";
-    else {
-      delete document.documentElement.dataset.busy;
-      setPendingSort(null);
-    }
+    else delete document.documentElement.dataset.busy;
   }, [pending]);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const lastPushed = useRef(params.get("q") ?? "");
@@ -80,7 +76,16 @@ export function Filters() {
         <kbd aria-hidden className={`pointer-events-none absolute top-1/2 right-3 hidden -translate-y-1/2 rounded border border-line px-1.5 text-[11px] leading-5 text-muted sm:block ${pending || q ? "opacity-0" : ""}`}>/</kbd>
         <span aria-hidden className={`absolute top-1/2 right-3.5 size-4 -translate-y-1/2 rounded-full border-2 border-line border-t-brand transition-opacity duration-150 ${pending ? "animate-spin opacity-100" : "opacity-0"}`} />
       </label>
-      <SortMenu value={pendingSort ?? params.get("sort") ?? "attention"} onChange={(v) => { setPendingSort(v); push("sort", v === "attention" ? "" : v); }} />
+      <SortMenu
+        value={params.get("sort") ?? "attention"}
+        onChange={(v) => {
+          // Rows re-sort on the client (Sorted), so only the URL changes: no server round trip.
+          const next = new URLSearchParams(params);
+          if (v === "attention") next.delete("sort");
+          else next.set("sort", v);
+          history.replaceState(null, "", `${pathname}?${next}`);
+        }}
+      />
     </form>
   );
 }

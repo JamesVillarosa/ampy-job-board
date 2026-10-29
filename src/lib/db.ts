@@ -16,6 +16,7 @@ export type Job = {
   phone: string | null;
   overdue: boolean;
   days_overdue: number | null;
+  ranks?: Record<Sort, number>;
 };
 
 export type JobEvent = { id: number; kind: "note" | "status"; body: string; author: string | null; created_at: Date };
@@ -51,7 +52,9 @@ export const isSort = (s: unknown): s is Sort => typeof s === "string" && s in S
 export async function listJobs({ status, q, sort, overdue }: { status?: Status; q?: string; sort: Sort; overdue?: boolean }) {
   const like = q && "%" + q.replace(/[%_\\]/g, "\\$&") + "%";
   return sql<Job[]>`
-    select ${COLUMNS} from jobs
+    select ${COLUMNS},
+      json_build_object(${sql.unsafe(Object.keys(SORTS).map((k, i) => `'${k}', rank_${i}`).join(", "))}) as ranks
+    from (select *, ${Object.values(SORTS).map((o, i) => sql`row_number() over (order by ${o}, id) as ${sql(`rank_${i}`)}`).reduce((a, f) => sql`${a}, ${f}`)} from jobs) jobs
     where true
       ${status ? sql`and status = ${status}` : sql``}
       ${overdue ? sql`and ${OVERDUE}` : sql``}

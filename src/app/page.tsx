@@ -5,6 +5,7 @@ import { STATUS_STYLE } from "@/lib/status";
 import { date, money } from "@/lib/format";
 import { StatusBadge, Tech } from "./components";
 import { Filters } from "./filters";
+import { KeepSort, Sorted } from "./sorted";
 
 const OPEN: Status[] = ["In Progress", "Scheduled", "On Hold"];
 const today = new Intl.DateTimeFormat("en-AU", { weekday: "long", day: "numeric", month: "long", timeZone: "Australia/Melbourne" });
@@ -49,7 +50,6 @@ async function Board({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
     if (filter === "overdue") p.set("overdue", "1");
     else if (filter) p.set("status", filter);
     if (q) p.set("q", q);
-    if (sort !== "attention") p.set("sort", sort);
     return p.size ? `/?${p}` : "/";
   };
   const chips: [Status | "overdue" | undefined, string, string | null, number][] = [
@@ -86,22 +86,24 @@ async function Board({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
             </ul>
             {/* Where the open work sits, in the same colours as the status chips below. */}
             <div className="mt-auto pt-6">
-              <p className="text-sm font-semibold">
-                <span className="tabular font-display text-xl font-extrabold">{money(open.total)}</span> of open work across {open.count} jobs
-              </p>
-              <div className="mt-3 flex h-4 gap-1 rounded-full bg-white p-1" role="img" aria-label={OPEN.map((s) => `${s} ${money(stats[s].total)}`).join(", ")}>
-                {OPEN.map((s) => (
-                  <span key={s} className={`rounded-full ${STATUS_STYLE[s].dot}`} style={{ flexGrow: stats[s].total }} />
-                ))}
+              <div className="rounded-2xl bg-white p-4 text-ink shadow-[0_12px_32px_-16px_rgb(60_20_0/0.5)]">
+                <p className="text-sm font-semibold text-muted">
+                  <span className="tabular font-display text-xl font-extrabold text-ink">{money(open.total)}</span> of open work across {open.count} jobs
+                </p>
+                <div className="mt-3 flex h-2.5 gap-1" role="img" aria-label={OPEN.map((s) => `${s} ${money(stats[s].total)}`).join(", ")}>
+                  {OPEN.map((s) => (
+                    <span key={s} className={`rounded-full ${STATUS_STYLE[s].dot}`} style={{ flexGrow: stats[s].total }} />
+                  ))}
+                </div>
+                <ul className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-sm font-semibold">
+                  {OPEN.map((s) => (
+                    <li key={s} className="flex items-center gap-2">
+                      <span aria-hidden className={`size-2.5 rounded-full ${STATUS_STYLE[s].dot}`} />
+                      {s} <span className="tabular text-muted">{money(stats[s].total)}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <ul className="mt-3 flex flex-wrap gap-2 text-sm font-semibold text-ink">
-                {OPEN.map((s) => (
-                  <li key={s} className="flex items-center gap-2 rounded-full bg-white px-3 py-1">
-                    <span aria-hidden className={`size-2.5 rounded-full ${STATUS_STYLE[s].dot}`} />
-                    {s} <span className="tabular">{money(stats[s].total)}</span>
-                  </li>
-                ))}
-              </ul>
             </div>
           </div>
 
@@ -169,7 +171,7 @@ async function Board({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
               const active = key === activeChip;
               return (
                 <li key={label}>
-                  <Link
+                  <KeepSort
                     href={href(key)}
                     scroll={false}
                     aria-current={active ? "page" : undefined}
@@ -180,7 +182,7 @@ async function Board({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
                     {dot && <span aria-hidden className={`size-2 rounded-full ${dot}`} />}
                     {label}
                     <span className={`tabular rounded-full px-1.5 text-xs ${active ? "bg-white/15" : "bg-canvas text-muted"}`}>{count}</span>
-                  </Link>
+                  </KeepSort>
                 </li>
               );
             })}
@@ -201,7 +203,7 @@ async function Board({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
           ) : (
             <>
               {/* Phones: one card per job, the whole card is the tap target. */}
-              <ul className="space-y-2.5 md:hidden">
+              <Sorted as="ul" ranks={jobs.map((j) => j.ranks!)} className="space-y-2.5 md:hidden">
                 {jobs.map((j) => (
                   <li key={j.id}>
                     <Link href={`/jobs/${j.id}`} className="block rounded-2xl bg-white p-4 ring-1 ring-line transition-[transform,box-shadow] duration-150 ease-out active:scale-[0.98]">
@@ -219,7 +221,7 @@ async function Board({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
                     </Link>
                   </li>
                 ))}
-              </ul>
+              </Sorted>
               <JobTable jobs={jobs} />
             </>
           )}
@@ -244,7 +246,7 @@ function JobTable({ jobs }: { jobs: Job[] }) {
             <th scope="col" className="py-3.5 pr-6 pl-4 text-right">Value</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-line/70">
+        <Sorted as="tbody" ranks={jobs.map((j) => j.ranks!)} className="divide-y divide-line/70">
           {jobs.map((j) => (
             <tr
               key={j.id}
@@ -274,7 +276,7 @@ function JobTable({ jobs }: { jobs: Job[] }) {
               </td>
             </tr>
           ))}
-        </tbody>
+        </Sorted>
       </table>
     </div>
   );
