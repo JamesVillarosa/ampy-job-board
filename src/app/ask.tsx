@@ -13,6 +13,7 @@ export function AskBoard() {
   const input = useRef<HTMLInputElement>(null);
   const log = useRef<HTMLOListElement>(null);
   const launcher = useRef<HTMLButtonElement>(null);
+  const root = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (open) input.current?.focus();
@@ -25,8 +26,16 @@ export function AskBoard() {
       setOpen(false);
       launcher.current?.focus();
     };
+    // Pointer down anywhere outside the panel and launcher closes it, like a popover.
+    const outside = (e: PointerEvent) => {
+      if (!root.current?.contains(e.target as Node)) setOpen(false);
+    };
     document.addEventListener("keydown", close);
-    return () => document.removeEventListener("keydown", close);
+    document.addEventListener("pointerdown", outside);
+    return () => {
+      document.removeEventListener("keydown", close);
+      document.removeEventListener("pointerdown", outside);
+    };
   }, [open]);
   useEffect(() => {
     log.current?.lastElementChild?.scrollIntoView({ block: "nearest" });
@@ -50,7 +59,7 @@ export function AskBoard() {
   }
 
   return (
-    <div className="fixed right-4 bottom-4 z-40 flex flex-col items-end gap-3 sm:right-6 sm:bottom-6">
+    <div ref={root} className="fixed right-4 bottom-4 z-40 flex flex-col items-end gap-3 sm:right-6 sm:bottom-6">
       <div
         id="ask-panel"
         role="dialog"
@@ -123,10 +132,12 @@ export function AskBoard() {
         aria-expanded={open}
         aria-controls="ask-panel"
         onClick={() => setOpen((o) => !o)}
-        className="flex h-12 items-center gap-2 rounded-full bg-ink pr-5 pl-4 text-sm font-bold text-white shadow-[0_12px_30px_-10px_rgb(40_20_5/0.6)] transition-[background-color,transform] duration-150 ease-out hover:bg-ink/90 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+        aria-label={open ? "Close" : "Ask the board"}
+        className="flex size-11 items-center justify-center gap-2 rounded-full sm:h-10 sm:w-auto sm:pr-4 sm:pl-3.5 bg-ink text-sm font-bold text-white shadow-[0_12px_30px_-10px_rgb(40_20_5/0.6)] transition-[background-color,transform] duration-150 ease-out hover:bg-ink/90 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
       >
         <svg aria-hidden viewBox="0 0 20 20" className="size-4 text-brand" fill="currentColor"><path d="M10 1l2.2 5.8L18 9l-5.8 2.2L10 17l-2.2-5.8L2 9l5.8-2.2L10 1Z" /></svg>
-        {open ? "Close" : "Ask the board"}
+        {/* Icon only on phones so it never sits over a job's value or buttons. */}
+        <span aria-hidden className="hidden sm:inline">{open ? "Close" : "Ask"}</span>
       </button>
     </div>
   );

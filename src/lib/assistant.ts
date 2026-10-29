@@ -20,6 +20,9 @@ export function answer(question: string, jobs: Row[]): string {
   const open = jobs.filter((j) => OPEN.includes(j.status));
   const by = (s: Status) => jobs.filter((j) => j.status === s);
 
+  // Contact details stay off the chat; the job page has the customer's number.
+  if (has(q, "phone", "email", "e-mail", "mobile", "contact", "address")) return "I can't give out phone numbers, emails or addresses here. Open the job and use Call customer.";
+
   // Names first: "what's on in Strathdale?" should not fall into the generic "what's on" rule.
   const pick = (key: (j: Row) => string | null) =>
     [...new Set(jobs.map(key).filter((v): v is string => !!v))].find((v) => v.split(/\s+/).some((w) => w.length > 2 && new RegExp(`\\b${w.replace(/\W/g, "")}\\b`, "i").test(q)));
@@ -50,18 +53,23 @@ export function answer(question: string, jobs: Row[]): string {
 
   const type = pick((j) => j.job_type);
   if (type) return list(`${type} jobs:`, jobs.filter((j) => j.job_type === type).map(withStatus), "");
-  return `Not sure about that one. ${HELP}`;
+  return `I can't help with that. I only know the jobs on this board. ${HELP}`;
 }
 
 // Keep the status visible when a list mixes statuses.
 const withStatus = (j: Row): Row => ({ ...j, job_type: `${j.job_type}, ${j.status}` });
 
-// Handover brief built from the record: where it's at, latest note, next step.
+// Handover brief built from the whole record: where it's at, every status change and note (oldest first), next step.
 export function brief(job: Job, events: JobEvent[]): string {
-  const overdue = job.status === "Scheduled" && !!job.scheduled_for && job.scheduled_for < new Date(new Date().toDateString());
-  const notes = events.filter((e) => e.kind === "note");
+  const overdue = job.overdue;
+  const oldest = events.toReversed();
+  const notes = oldest.filter((e) => e.kind === "note");
+  const changes = oldest.filter((e) => e.kind === "status");
   const where = `${job.job_type} for ${job.customer} in ${job.suburb}, ${money(job.value)}. ${job.technician ? `${job.technician} has it` : "No tech assigned yet"}.`;
-  const latest = notes[0] ? `Latest note (${date(notes[0].created_at)}): "${notes[0].body}"` : "No notes yet, so confirm access, parking and the exact scope with the customer before attending.";
+  const history = changes.length ? `Status: ${changes.map((e) => `${e.body} (${date(e.created_at)})`).join(", then ")}.` : `Status: ${job.status}.`;
+  const noted = notes.length
+    ? `${notes.length} ${notes.length === 1 ? "note" : "notes"}:\n${notes.map((e) => `• ${e.author ?? "Office"}, ${date(e.created_at)}: ${e.body}`).join("\n")}`
+    : "No notes yet, so confirm access, parking and the exact scope with the customer before attending.";
   const next: Record<Status, string> = {
     Scheduled: overdue
       ? `It was booked for ${date(job.scheduled_for)} and is still Scheduled: call the customer to rebook or mark it In Progress.`
@@ -71,5 +79,5 @@ export function brief(job: Job, events: JobEvent[]): string {
     Completed: "Job is done. Make sure it's invoiced.",
     Cancelled: "Cancelled. Nothing to action unless the customer comes back.",
   };
-  return `${where} ${latest} ${next[job.status]}`;
+  return `${where} ${history}\n\n${noted}\n\nNext: ${next[job.status]}`;
 }
