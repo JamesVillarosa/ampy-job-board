@@ -92,34 +92,34 @@ async function Board({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
             </ul>
           </div>
 
-          <div role="status" className="rounded-2xl bg-ink p-5 text-white shadow-[0_20px_40px_-20px_rgb(60_20_0/0.8)] sm:p-6">
+          <div role="status" className="rounded-2xl bg-white p-5 text-ink shadow-[0_12px_32px_-16px_rgb(60_20_0/0.5)]">
             {overdue.length > 0 ? (
               <>
                 <div className="flex items-start gap-3">
-                  <span aria-hidden className="mt-1.5 size-2.5 shrink-0 rounded-full bg-red-500 ring-4 ring-red-500/25" />
+                  <span aria-hidden className="mt-1.5 size-2.5 shrink-0 rounded-full bg-red-500 ring-4 ring-red-100" />
                   <div>
                     <h2 className="text-lg font-bold">Needs a follow-up</h2>
-                    <p className="mt-0.5 text-sm text-white/75">
+                    <p className="mt-0.5 text-sm text-muted">
                       {overdue.length} {overdue.length === 1 ? "job is" : "jobs are"} past the booked date and still marked Scheduled.
                     </p>
                   </div>
                 </div>
-                <ul className="mt-3 divide-y divide-white/10">
+                <ul className="mt-3 divide-y divide-line">
                   {shown.map((j) => (
                     <li key={j.id}>
                       <Link href={`/jobs/${j.id}`} className="group flex min-h-12 items-center justify-between gap-3 py-2">
                         <span className="min-w-0">
-                          <span className="block truncate font-semibold group-hover:underline">{j.customer}</span>
-                          <span className="block text-sm text-white/70">
+                          <span className="block truncate font-semibold group-hover:text-brand-deep">{j.customer}</span>
+                          <span className="block text-sm text-muted">
                             {j.suburb} · {j.days_overdue} {j.days_overdue === 1 ? "day" : "days"} late
                           </span>
                         </span>
-                        <span aria-hidden className="text-white/60 transition-transform duration-200 ease-out group-hover:translate-x-0.5 group-hover:text-white">→</span>
+                        <span aria-hidden className="text-muted transition-transform duration-200 ease-out group-hover:translate-x-0.5 group-hover:text-brand">→</span>
                       </Link>
                     </li>
                   ))}
                   {shown.length < overdue.length && (
-                    <li className="py-2 text-sm font-semibold text-white/70">+ {overdue.length - shown.length} more</li>
+                    <li className="py-2 text-sm font-semibold text-muted">+ {overdue.length - shown.length} more</li>
                   )}
                 </ul>
                 <Link
@@ -131,9 +131,9 @@ async function Board({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
               </>
             ) : (
               <div className="flex h-full flex-col items-center justify-center py-6 text-center">
-                <span aria-hidden className="grid size-10 place-items-center rounded-full bg-emerald-500/20 font-bold text-emerald-300">✓</span>
+                <span aria-hidden className="grid size-10 place-items-center rounded-full bg-emerald-100 font-bold text-emerald-700">✓</span>
                 <h2 className="mt-3 text-lg font-bold">All caught up</h2>
-                <p className="mt-1 text-sm text-white/70">No jobs are past their booked date.</p>
+                <p className="mt-1 text-sm text-muted">No jobs are past their booked date.</p>
               </div>
             )}
           </div>
