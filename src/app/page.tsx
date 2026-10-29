@@ -85,8 +85,8 @@ async function Board({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
                     className="group block rounded-lg transition-transform duration-200 ease-out active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
                   >
                     <span className="tabular block font-display text-5xl leading-none font-extrabold sm:text-6xl">{stats[s].count}</span>
-                    <span className="mt-2 block text-base font-bold underline-offset-4 group-hover:underline">{s}</span>
-                    <span className="tabular block text-base font-semibold">{money(stats[s].total)}</span>
+                    <span className="mt-2 block text-sm font-bold whitespace-nowrap underline-offset-4 group-hover:underline sm:text-base">{s}</span>
+                    <span className="tabular block text-sm font-semibold sm:text-base">{money(stats[s].total)}</span>
                   </Link>
                 </li>
               ))}

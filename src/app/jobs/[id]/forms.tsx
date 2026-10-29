@@ -245,7 +245,7 @@ export function StatusForm({ jobId, current }: { jobId: number; current: Status 
               type="button"
               aria-pressed={active}
               onClick={() => !active && change(s)}
-              className={`flex h-12 items-center justify-center gap-2 rounded-xl px-3 text-sm font-bold whitespace-nowrap ring-1 transition-[background-color,color,box-shadow,transform] duration-150 ease-out active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
+              className={`flex h-12 items-center justify-center gap-2 rounded-xl px-3 last:col-span-2 sm:last:col-span-1 text-sm font-bold whitespace-nowrap ring-1 transition-[background-color,color,box-shadow,transform] duration-150 ease-out active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
                 active ? "bg-ink text-white ring-ink" : `bg-white ring-line hover:ring-ink/30 ${STATUS_STYLE[s].text}`
               }`}
             >
