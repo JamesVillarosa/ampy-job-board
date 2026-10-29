@@ -76,6 +76,10 @@ test("needs an author before saving a note", async ({ page }) => {
   await page.getByLabel("Add a note").fill("No author yet");
   await page.getByRole("button", { name: "Save note" }).click();
   await expect(page.locator("#note-error")).toHaveText("Pick who's writing the note.");
+  // The text survives the failed save, and the error goes once they pick someone.
+  await expect(page.getByLabel("Add a note")).toHaveValue("No author yet");
+  await page.getByRole("group", { name: "Written by" }).getByText("Liam").click();
+  await expect(page.locator("#note-error")).toBeEmpty();
 });
 
 test("edits and deletes a note, with undo", async ({ page }, info) => {
@@ -110,7 +114,10 @@ test("undo puts the status back", async ({ page }) => {
   await expect(page.getByRole("button", { name: next, exact: true })).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: "Undo" }).click();
   await expect(page.getByRole("button", { name: before.trim(), exact: true })).toHaveAttribute("aria-pressed", "true");
-  await expect(page.locator("ol li").first()).toContainText(`${next} → ${before.trim()}`);
+  // Undo takes the change out of the history rather than logging a second one.
+  await expect(page.locator("ol li").filter({ hasText: `→ ${next}` })).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByRole("button", { name: before.trim(), exact: true })).toHaveAttribute("aria-pressed", "true");
 });
 
 test("changes status and logs it", async ({ page }) => {
@@ -156,8 +163,8 @@ test("handover brief summarises the job record", async ({ page }) => {
   await page.getByRole("button", { name: "Write brief" }).click();
   const text = page.getByRole("region", { name: "Handover brief" }).locator("p.enter");
   await expect(text).toContainText(/ for .+ in /);
-  await expect(text).toContainText("Status:");
-  await expect(text).toContainText("Next:");
+  await expect(text).toContainText(/booked|since|completed|cancelled/);
+  await expect(text).not.toContainText("Status:");
 });
 
 test("ask-the-board answers from live jobs and closes on Escape", async ({ page }) => {
